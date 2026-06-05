@@ -47,3 +47,21 @@ export interface FetchResult {
   entries: RssEntry[];
   error: string | null;
 }
+
+export interface FeedHealth {
+  feedId: string;
+  status: "ok" | "warn" | "fail";
+  checks: {
+    reachable: boolean;
+    validXml: boolean;
+    validSchema: boolean;
+    stableGuids: boolean;
+    saneDates: boolean;
+    usableContent: boolean;
+    fresh: boolean;
+  };
+  newestItemDate: string | null;
+  responseTimeMs: number;
+  lastValidatedAt: number;
+  error?: string;
+}
