@@ -25,3 +25,6 @@ dist-ssr
 
 # OS
 Thumbs.db
+
+# Validation state
+scripts/.validator-state.json

@@ -1,11 +1,14 @@
+import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import {
   TrendingUp, Globe, Shield, Heart, Leaf, Landmark, Scale, Briefcase, Store,
   Train, AlertTriangle, Palette, Eye, FileText, Star, Newspaper, BookOpen, Sprout,
-  Cpu, Home, HeartPulse, RefreshCw, ArrowRight, Rss,
+  Cpu, Home, HeartPulse, RefreshCw, ArrowRight, Rss, CheckCircle2, XCircle,
 } from "lucide-react";
 import { feedStats, categoryList } from "../data/feeds";
 import { useFeedCache } from "../hooks/useFeedCache";
+import { loadFeedHealth, getHealthCounts } from "../lib/health";
+import type { FeedHealth } from "../types";
 import CategoryCard from "../components/CategoryCard";
 import EntryCard from "../components/EntryCard";
 import EmptyState from "../components/EmptyState";
@@ -53,6 +56,13 @@ export default function Dashboard() {
   const { allCached, clearAll, stats } = useFeedCache();
   const cachedData = allCached();
   const cacheStats = stats();
+  const [healthData, setHealthData] = useState<FeedHealth[]>([]);
+
+  useEffect(() => {
+    loadFeedHealth().then(setHealthData);
+  }, []);
+
+  const healthCounts = getHealthCounts(healthData);
 
   const handleRefreshAll = () => { clearAll(); window.location.reload(); };
 
@@ -81,6 +91,35 @@ export default function Dashboard() {
           <div className="bg-slate-50 rounded-lg p-3 text-center"><p className="text-2xl font-bold text-blue-600">{cacheStats.oldestFetch ? formatRelativeTime(cacheStats.oldestFetch) : "—"}</p><p className="text-[0.6875rem] text-slate-500 uppercase tracking-wide">Last Update</p></div>
         </div>
       </section>
+
+      {healthData.length > 0 && (
+        <section className="card p-6">
+          <h2 className="text-lg font-semibold text-slate-900 mb-4">Feed Health Overview</h2>
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+            <div className="flex items-center gap-3 bg-green-50 rounded-lg p-4">
+              <CheckCircle2 size={24} className="text-green-600" />
+              <div>
+                <p className="text-2xl font-bold text-green-700">{healthCounts.ok}</p>
+                <p className="text-sm text-green-600">Healthy</p>
+              </div>
+            </div>
+            <div className="flex items-center gap-3 bg-amber-50 rounded-lg p-4">
+              <AlertTriangle size={24} className="text-amber-600" />
+              <div>
+                <p className="text-2xl font-bold text-amber-700">{healthCounts.warn}</p>
+                <p className="text-sm text-amber-600">Warning</p>
+              </div>
+            </div>
+            <div className="flex items-center gap-3 bg-red-50 rounded-lg p-4">
+              <XCircle size={24} className="text-red-600" />
+              <div>
+                <p className="text-2xl font-bold text-red-700">{healthCounts.fail}</p>
+                <p className="text-sm text-red-600">Failed</p>
+              </div>
+            </div>
+          </div>
+        </section>
+      )}
 
       <section>
         <h2 className="text-lg font-semibold text-slate-900 mb-4">Browse by Category</h2>

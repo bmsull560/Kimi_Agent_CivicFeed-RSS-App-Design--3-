@@ -166,7 +166,10 @@ export async function fetchFeed(url: string, feedId: string, feedName: string): 
     if (res.ok) {
       const xml = await res.text();
       const entries = parseRssXml(xml, feedId, feedName);
-      if (entries.length > 0) return { entries, error: null };
+      if (entries.length > 0) {
+        validateFeedClientSide(entries, feedId, feedName);
+        return { entries, error: null };
+      }
     }
   } catch (e) {
     errors.push(`direct: ${e instanceof Error ? e.message : String(e)}`);
@@ -179,7 +182,10 @@ export async function fetchFeed(url: string, feedId: string, feedName: string): 
       const xml = await res.text();
       if (!xml || xml.length < 50) { errors.push(`proxy: Empty response`); continue; }
       const entries = parseRssXml(xml, feedId, feedName);
-      if (entries.length > 0) return { entries, error: null };
+      if (entries.length > 0) {
+        validateFeedClientSide(entries, feedId, feedName);
+        return { entries, error: null };
+      }
       errors.push(`proxy: No entries parsed`);
     } catch (e) {
       errors.push(`proxy: ${e instanceof Error ? e.message : String(e)}`);
@@ -189,4 +195,31 @@ export async function fetchFeed(url: string, feedId: string, feedName: string): 
     entries: [],
     error: `Failed after ${errors.length} attempts: ${errors.slice(0, 3).join("; ")}`,
   };
+}
+
+function validateFeedClientSide(entries: RssEntry[], feedId: string, _feedName: string) {
+  const seenIds = new Set<string>();
+  const now = Date.now();
+  const issues: string[] = [];
+
+  for (const entry of entries) {
+    if (!entry.title || entry.title.trim().length === 0) {
+      issues.push(`Entry ${entry.id} has empty title`);
+    }
+    if (!entry.link || entry.link.trim().length === 0) {
+      issues.push(`Entry ${entry.id} has empty link`);
+    }
+    if (seenIds.has(entry.id)) {
+      issues.push(`Duplicate entry id: ${entry.id}`);
+    }
+    seenIds.add(entry.id);
+    const pubTime = new Date(entry.pubDate).getTime();
+    if (!isNaN(pubTime) && pubTime > now + 10 * 60 * 1000) {
+      issues.push(`Entry ${entry.id} has future date: ${entry.pubDate}`);
+    }
+  }
+
+  if (issues.length > 0) {
+    console.warn(`[FeedValidator] ${feedId} issues:`, issues.slice(0, 5));
+  }
 }

@@ -1,7 +1,9 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { useSearchParams, useNavigate } from "react-router-dom";
 import { Search, LayoutGrid, List, Rss, ExternalLink } from "lucide-react";
 import { feeds, searchFeeds, getFeedsByCategory } from "../data/feeds";
+import { loadFeedHealth, getFeedHealth, healthStatusColor } from "../lib/health";
+import type { FeedHealth } from "../types";
 import EmptyState from "../components/EmptyState";
 
 function statusDot(status: string): string {
@@ -15,6 +17,13 @@ export default function FeedDirectory() {
   const qParam = searchParams.get("q") || "";
   const [viewMode, setViewMode] = useState<"list" | "grid">("list");
   const [localQ, setLocalQ] = useState(qParam);
+  const [healthData, setHealthData] = useState<FeedHealth[]>([]);
+
+  useEffect(() => {
+    loadFeedHealth().then(setHealthData);
+  }, []);
+
+  const getHealth = (feedId: string) => getFeedHealth(healthData, feedId);
 
   const filteredFeeds = useMemo(() => {
     let result = categoryParam ? getFeedsByCategory(categoryParam) : feeds;
@@ -50,37 +59,46 @@ export default function FeedDirectory() {
         <EmptyState message="No feeds found" subMessage="Try adjusting your search or category filter." action={{ label: "Clear Filters", onClick: () => { clearSearch(); clearCategory(); } }} />
       ) : viewMode === "grid" ? (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
-          {filteredFeeds.map(feed => (
-            <button key={feed.id} onClick={() => navigate(`/feed/${feed.id}`)} className="card-hover p-4 text-left cursor-pointer" type="button">
-              <div className="flex items-start gap-3">
-                <div className={`mt-0.5 w-2 h-2 rounded-full flex-shrink-0 ${statusDot(feed.status)}`} />
-                <div className="min-w-0 flex-1">
-                  <h3 className="text-sm font-semibold text-slate-800 truncate">{feed.shortName}</h3>
-                  <p className="text-[0.6875rem] text-slate-500 mt-0.5">{feed.agency}</p>
-                  <div className="flex items-center gap-2 mt-2"><span className="badge bg-slate-100 text-slate-600">{feed.category}</span></div>
+          {filteredFeeds.map(feed => {
+            const health = getHealth(feed.id);
+            const dotColor = health ? healthStatusColor(health.status) : statusDot(feed.status);
+            return (
+              <button key={feed.id} onClick={() => navigate(`/feed/${feed.id}`)} className="card-hover p-4 text-left cursor-pointer" type="button">
+                <div className="flex items-start gap-3">
+                  <div className={`mt-0.5 w-2 h-2 rounded-full flex-shrink-0 ${dotColor}`} />
+                  <div className="min-w-0 flex-1">
+                    <h3 className="text-sm font-semibold text-slate-800 truncate">{feed.shortName}</h3>
+                    <p className="text-[0.6875rem] text-slate-500 mt-0.5">{feed.agency}</p>
+                    <div className="flex items-center gap-2 mt-2"><span className="badge bg-slate-100 text-slate-600">{feed.category}</span></div>
+                  </div>
                 </div>
-              </div>
-            </button>
-          ))}
+              </button>
+            );
+          })}
         </div>
       ) : (
         <div className="card divide-y divide-slate-100">
-          {filteredFeeds.map(feed => (
-            <div key={feed.id} className="flex items-center gap-3 px-4 py-3 hover:bg-slate-50 transition-colors cursor-pointer" onClick={() => navigate(`/feed/${feed.id}`)} role="button" tabIndex={0} onKeyDown={e => e.key === "Enter" && navigate(`/feed/${feed.id}`)}>
-              <div className={`w-2 h-2 rounded-full flex-shrink-0 ${statusDot(feed.status)}`} title={feed.status} />
-              <div className="min-w-0 flex-1">
-                <h3 className="text-sm font-medium text-slate-800 truncate">{feed.shortName}</h3>
-                <div className="flex items-center gap-2 mt-0.5">
-                  <span className="text-[0.6875rem] text-slate-500">{feed.agency}</span>
-                  <span className="badge bg-slate-100 text-slate-600">{feed.category}</span>
+          {filteredFeeds.map(feed => {
+            const health = getHealth(feed.id);
+            const dotColor = health ? healthStatusColor(health.status) : statusDot(feed.status);
+            const title = health ? `${health.status}${health.error ? ` — ${health.error}` : ""}` : feed.status;
+            return (
+              <div key={feed.id} className="flex items-center gap-3 px-4 py-3 hover:bg-slate-50 transition-colors cursor-pointer" onClick={() => navigate(`/feed/${feed.id}`)} role="button" tabIndex={0} onKeyDown={e => e.key === "Enter" && navigate(`/feed/${feed.id}`)}>
+                <div className={`w-2 h-2 rounded-full flex-shrink-0 ${dotColor}`} title={title} />
+                <div className="min-w-0 flex-1">
+                  <h3 className="text-sm font-medium text-slate-800 truncate">{feed.shortName}</h3>
+                  <div className="flex items-center gap-2 mt-0.5">
+                    <span className="text-[0.6875rem] text-slate-500">{feed.agency}</span>
+                    <span className="badge bg-slate-100 text-slate-600">{feed.category}</span>
+                  </div>
+                </div>
+                <div className="flex items-center gap-1 flex-shrink-0">
+                  {feed.website && <a href={feed.website} target="_blank" rel="noopener noreferrer" onClick={e => e.stopPropagation()} className="p-1.5 rounded-md hover:bg-slate-100 text-slate-400 hover:text-slate-600" title="Visit website"><ExternalLink size={14} /></a>}
+                  <span className="p-1.5 text-slate-300"><Rss size={14} /></span>
                 </div>
               </div>
-              <div className="flex items-center gap-1 flex-shrink-0">
-                {feed.website && <a href={feed.website} target="_blank" rel="noopener noreferrer" onClick={e => e.stopPropagation()} className="p-1.5 rounded-md hover:bg-slate-100 text-slate-400 hover:text-slate-600" title="Visit website"><ExternalLink size={14} /></a>}
-                <span className="p-1.5 text-slate-300"><Rss size={14} /></span>
-              </div>
-            </div>
-          ))}
+            );
+          })}
         </div>
       )}
     </div>
