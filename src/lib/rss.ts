@@ -24,8 +24,8 @@ function normalizeDate(dateStr: string): string {
   if (!isNaN(d.getTime())) return d.toISOString();
   const usMatch = cleaned.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})/);
   if (usMatch) {
-    const [_, m, d, y] = usMatch;
-    const dd = new Date(`${y}-${m.padStart(2, "0")}-${d.padStart(2, "0")}`);
+    const [, m, day, y] = usMatch;
+    const dd = new Date(`${y}-${m.padStart(2, "0")}-${day.padStart(2, "0")}`);
     if (!isNaN(dd.getTime())) return dd.toISOString();
   }
   return new Date().toISOString();
@@ -167,7 +167,7 @@ export async function fetchFeed(url: string, feedId: string, feedName: string): 
       const xml = await res.text();
       const entries = parseRssXml(xml, feedId, feedName);
       if (entries.length > 0) {
-        validateFeedClientSide(entries, feedId, feedName);
+        validateFeedClientSide(entries, feedId);
         return { entries, error: null };
       }
     }
@@ -183,7 +183,7 @@ export async function fetchFeed(url: string, feedId: string, feedName: string): 
       if (!xml || xml.length < 50) { errors.push(`proxy: Empty response`); continue; }
       const entries = parseRssXml(xml, feedId, feedName);
       if (entries.length > 0) {
-        validateFeedClientSide(entries, feedId, feedName);
+        validateFeedClientSide(entries, feedId);
         return { entries, error: null };
       }
       errors.push(`proxy: No entries parsed`);
@@ -197,7 +197,7 @@ export async function fetchFeed(url: string, feedId: string, feedName: string): 
   };
 }
 
-function validateFeedClientSide(entries: RssEntry[], feedId: string, _feedName: string) {
+function validateFeedClientSide(entries: RssEntry[], feedId: string) {
   const seenIds = new Set<string>();
   const now = Date.now();
   const issues: string[] = [];

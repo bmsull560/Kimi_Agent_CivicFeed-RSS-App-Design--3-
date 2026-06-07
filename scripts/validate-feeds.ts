@@ -13,6 +13,7 @@ const STATE_PATH = join(__dirname, ".validator-state.json");
 const HEALTH_PATH = join(__dirname, "..", "public", "feed-health.json");
 const TIMEOUT_MS = 10000;
 const MAX_REDIRECTS = 5;
+const STRICT = process.argv.includes("--strict");
 
 interface ValidatorState {
   [feedId: string]: {
@@ -32,6 +33,38 @@ function loadState(): ValidatorState {
 
 function saveState(state: ValidatorState) {
   writeFileSync(STATE_PATH, JSON.stringify(state, null, 2));
+}
+
+function failureReason(health: FeedHealth): string {
+  const error = health.error || "";
+  if (error.startsWith("HTTP 404")) return "404";
+  if (error.startsWith("HTTP 403")) return "403";
+  if (error.startsWith("HTTP 429")) return "rate limited";
+  if (error.startsWith("Timeout")) return "timeout";
+  if (error.includes("Unexpected root element")) return "html/non-feed response";
+  if (error.includes("Duplicate GUIDs")) return "duplicate GUIDs";
+  if (error.includes("missing") || error.includes("no items found")) return "schema";
+  if (!health.checks.fresh) return "stale";
+  if (!health.checks.saneDates) return "date issues";
+  if (!health.checks.usableContent) return "content issues";
+  return error || "unknown";
+}
+
+function printIssueReport(health: FeedHealth[]) {
+  const issues = health.filter((h) => h.status !== "ok");
+  if (issues.length === 0) return;
+
+  const grouped = new Map<string, FeedHealth[]>();
+  for (const item of issues) {
+    const reason = failureReason(item);
+    grouped.set(reason, [...(grouped.get(reason) || []), item]);
+  }
+
+  console.log("\nIssue report:");
+  for (const [reason, items] of [...grouped.entries()].sort((a, b) => b[1].length - a[1].length)) {
+    const sample = items.slice(0, 5).map((item) => item.feedId).join(", ");
+    console.log(`  ${reason}: ${items.length}${sample ? ` (${sample})` : ""}`);
+  }
 }
 
 function isXmlContentType(ct: string | null): boolean {
@@ -135,6 +168,8 @@ async function validateFeed(feed: Feed, state: ValidatorState): Promise<FeedHeal
       parseAttributeValue: false,
       trimValues: true,
     });
+    // fast-xml-parser returns structurally different objects for RSS, Atom, and RDF feeds.
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     let parsed: any;
     try {
       parsed = parser.parse(xmlText);
@@ -158,6 +193,7 @@ async function validateFeed(feed: Feed, state: ValidatorState): Promise<FeedHeal
     const channel = rss.channel || rss;
     const atomFeed = parsed.feed;
 
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     let items: any[] = [];
     let isAtom = false;
 
@@ -211,6 +247,7 @@ async function validateFeed(feed: Feed, state: ValidatorState): Promise<FeedHeal
 
     // --- 4. Stability (GUIDs) ---
     const guids = items
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       .map((item: any) => {
         if (isAtom) return item.id;
         return item.guid || item.link || item.title;
@@ -354,6 +391,7 @@ async function main() {
   writeFileSync(HEALTH_PATH, JSON.stringify(health, null, 2));
   console.log(`Validation complete. Results written to ${HEALTH_PATH}`);
   console.log(`Summary: ${ok} OK, ${warn} WARN, ${fail} FAIL`);
+  printIssueReport(health);
 
   // Show some failures
   const failures = health.filter((h) => h.status === "fail").slice(0, 10);
@@ -362,6 +400,13 @@ async function main() {
     for (const f of failures) {
       console.log(`  ${f.feedId}: ${f.error}`);
     }
+  }
+
+  if (STRICT && (warn > 0 || fail > 0 || ok !== feeds.length || health.length !== feeds.length)) {
+    console.error(
+      `Strict feed validation failed: ${ok}/${feeds.length} feeds are ok, ${warn} warn, ${fail} fail.`
+    );
+    process.exit(1);
   }
 }
 

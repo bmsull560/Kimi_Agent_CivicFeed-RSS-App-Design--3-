@@ -13,7 +13,6 @@ import CategoryCard from "../components/CategoryCard";
 import EntryCard from "../components/EntryCard";
 import EmptyState from "../components/EmptyState";
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
 const byCategory = feedStats.byCategory as Record<string, number>;
 
 const categoryIcons: Record<string, React.ReactNode> = {

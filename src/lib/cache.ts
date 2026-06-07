@@ -10,7 +10,9 @@ function loadCache(): CacheEntry[] {
     if (!raw) return [];
     const parsed = JSON.parse(raw) as CacheEntry[];
     return Array.isArray(parsed) ? parsed : [];
-  } catch { return []; }
+  } catch {
+    return [];
+  }
 }
 
 function saveCache(entries: CacheEntry[]): void {
@@ -22,7 +24,11 @@ function saveCache(entries: CacheEntry[]): void {
       const reduced = entries
         .sort((a, b) => b.accessedAt - a.accessedAt)
         .slice(0, Math.max(half, 25));
-      try { localStorage.setItem(CACHE_KEY, JSON.stringify(reduced)); } catch {}
+      try {
+        localStorage.setItem(CACHE_KEY, JSON.stringify(reduced));
+      } catch {
+        return;
+      }
     }
   }
 }
@@ -59,7 +65,11 @@ export function invalidateFeed(feedId: string): void {
 }
 
 export function invalidateAll(): void {
-  try { localStorage.removeItem(CACHE_KEY); } catch {}
+  try {
+    localStorage.removeItem(CACHE_KEY);
+  } catch {
+    return;
+  }
 }
 
 export function getCacheStats(): { totalCached: number; oldestFetch: number | null } {

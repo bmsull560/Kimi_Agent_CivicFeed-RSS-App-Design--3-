@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect } from "react";
+import { useState, useRef, useEffect, useMemo } from "react";
 import { Shield, Search, Rss, Menu, X } from "lucide-react";
 import { feedStats, searchFeeds } from "../data/feeds";
 import type { Feed } from "../types";
@@ -11,16 +11,12 @@ interface HeaderProps {
 
 export default function Header({ onMenuToggle, sidebarOpen }: HeaderProps) {
   const [query, setQuery] = useState("");
-  const [results, setResults] = useState<Feed[]>([]);
   const [showDropdown, setShowDropdown] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
   const dropdownRef = useRef<HTMLDivElement>(null);
   const navigate = useNavigate();
 
-  useEffect(() => {
-    if (query.length >= 2) { setResults(searchFeeds(query).slice(0, 8)); setShowDropdown(true); }
-    else setShowDropdown(false);
-  }, [query]);
+  const results = useMemo(() => query.length >= 2 ? searchFeeds(query).slice(0, 8) : [], [query]);
 
   useEffect(() => {
     function handleClickOutside(e: MouseEvent) {
@@ -66,7 +62,7 @@ export default function Header({ onMenuToggle, sidebarOpen }: HeaderProps) {
       <div className="px-4 lg:px-6 pb-3">
         <div className="relative max-w-xl" ref={dropdownRef}>
           <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none"><Search size={16} className="text-slate-400" /></div>
-          <input ref={inputRef} type="text" value={query} onChange={e => setQuery(e.target.value)} onFocus={() => query.length >= 2 && setShowDropdown(true)}
+          <input ref={inputRef} type="text" value={query} onChange={e => { const value = e.target.value; setQuery(value); setShowDropdown(value.length >= 2); }} onFocus={() => query.length >= 2 && setShowDropdown(true)}
             placeholder="Search feeds... (press / to focus)" className="input w-full pl-9 pr-4 py-2 text-sm"
             aria-label="Search feeds" role="combobox" aria-expanded={showDropdown} aria-autocomplete="list" />
           {showDropdown && results.length > 0 && (

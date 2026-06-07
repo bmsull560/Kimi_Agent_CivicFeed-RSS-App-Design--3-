@@ -1,14 +1,22 @@
 # Feed Validation
 
-CivicFeed validates all 623 government RSS feeds on a continuous schedule to surface health status in the app.
+CivicFeed validates every active government RSS feed on a continuous schedule to surface health status in the app.
 
 ## Running Locally
 
 ```bash
-npm run validate:feeds
+pnpm run validate:feeds
 ```
 
 This fetches every feed, runs the 7 validation gates, and writes `public/feed-health.json`.
+
+Use strict mode before publishing active catalog changes:
+
+```bash
+pnpm run validate:feeds -- --strict
+```
+
+Strict mode exits nonzero unless every active catalog feed validates with `status: "ok"`.
 
 ## Validation Gates
 
@@ -25,8 +33,8 @@ This fetches every feed, runs the 7 validation gates, and writes `public/feed-he
 ## Severity Levels
 
 - **FAIL** — Feed is down, invalid XML, missing required fields, or has duplicate GUIDs
-- **WARN** — Feed works but is stale, has date issues, or missing optional content
-- **OK** — All gates pass
+- **WARN** — Feed works but is stale, has date issues, or missing optional content; it is not considered active
+- **OK** — All gates pass; only OK feeds are active
 
 ## CI Schedule
 
