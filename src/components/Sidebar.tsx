@@ -30,6 +30,7 @@ const categoryIcons: Record<string, React.ReactNode> = {
   "Veterans Affairs, Healthcare, & Benefits": <HeartPulse size={18} />,
 };
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 const byCategory = feedStats.byCategory as Record<string, number>;
 
 interface SidebarProps { isOpen: boolean; onClose: () => void; }

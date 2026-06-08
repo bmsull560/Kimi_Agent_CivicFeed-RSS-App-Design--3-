@@ -7,7 +7,6 @@ export function useRssFeed(feedUrl: string, feedId: string, feedName: string): F
   const [state, setState] = useState<FetchState>({ status: "idle", entries: [], error: null, lastFetched: null });
   const abortRef = useRef<AbortController | null>(null);
   const retryTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const retryFetchRef = useRef<(force: boolean) => void>(() => undefined);
 
   const doFetch = useCallback(async (force: boolean) => {
     if (!feedUrl) return;
@@ -25,7 +24,7 @@ export function useRssFeed(feedUrl: string, feedId: string, feedName: string): F
     if (abortRef.current.signal.aborted) return;
     if (result.error || result.entries.length === 0) {
       if (retryTimerRef.current) clearTimeout(retryTimerRef.current);
-      retryTimerRef.current = setTimeout(() => retryFetchRef.current(true), 2000);
+      retryTimerRef.current = setTimeout(() => doFetch(true), 2000);
       setState({ status: "error", entries: [], error: result.error || "No entries found", lastFetched: null });
       return;
     }
@@ -34,11 +33,7 @@ export function useRssFeed(feedUrl: string, feedId: string, feedName: string): F
   }, [feedUrl, feedId, feedName]);
 
   useEffect(() => {
-    retryFetchRef.current = doFetch;
-  }, [doFetch]);
-
-  useEffect(() => {
-    void Promise.resolve().then(() => doFetch(false));
+    doFetch(false);
     return () => { if (abortRef.current) abortRef.current.abort(); if (retryTimerRef.current) clearTimeout(retryTimerRef.current); };
   }, [doFetch]);
 
