@@ -41,6 +41,14 @@ export default function Header({ onMenuToggle, sidebarOpen }: HeaderProps) {
 
   const handleSelect = (feed: Feed) => { setQuery(""); setShowDropdown(false); navigate(`/feed/${feed.id}`); };
 
+  const handleSearchSubmit = () => {
+    if (query.trim()) {
+      setShowDropdown(false);
+      navigate(`/search?q=${encodeURIComponent(query.trim())}`);
+      setQuery("");
+    }
+  };
+
   return (
     <header className="sticky top-0 z-50 bg-white border-b border-slate-200">
       <div className="flex items-center justify-between px-4 lg:px-6 h-14">
@@ -63,6 +71,7 @@ export default function Header({ onMenuToggle, sidebarOpen }: HeaderProps) {
         <div className="relative max-w-xl" ref={dropdownRef}>
           <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none"><Search size={16} className="text-slate-400" /></div>
           <input ref={inputRef} type="text" value={query} onChange={e => { const value = e.target.value; setQuery(value); setShowDropdown(value.length >= 2); }} onFocus={() => query.length >= 2 && setShowDropdown(true)}
+            onKeyDown={e => { if (e.key === "Enter") handleSearchSubmit(); }}
             placeholder="Search feeds... (press / to focus)" className="input w-full pl-9 pr-4 py-2 text-sm"
             aria-label="Search feeds" role="combobox" aria-expanded={showDropdown} aria-autocomplete="list" />
           {showDropdown && results.length > 0 && (
@@ -75,6 +84,16 @@ export default function Header({ onMenuToggle, sidebarOpen }: HeaderProps) {
                   </div>
                 </button>
               ))}
+              {query.length >= 2 && (
+                <button
+                  onClick={handleSearchSubmit}
+                  className="w-full text-left px-4 py-2.5 hover:bg-blue-50 flex items-center gap-3 transition-colors border-t border-slate-100 bg-slate-50/50"
+                  type="button"
+                >
+                  <Search size={14} className="text-blue-600" />
+                  <span className="text-sm font-medium text-blue-700">Search articles for "{query}"...</span>
+                </button>
+              )}
             </div>
           )}
           {showDropdown && query.length >= 2 && results.length === 0 && (
