@@ -5,6 +5,7 @@ import Dashboard from "./pages/Dashboard";
 import FeedDirectory from "./pages/FeedDirectory";
 import FeedDetail from "./pages/FeedDetail";
 import SearchResults from "./pages/SearchResults";
+import Recap from "./pages/Recap";
 
 function App() {
   return (
@@ -15,6 +16,7 @@ function App() {
           <Route path="/feeds" element={<FeedDirectory />} />
           <Route path="/feed/:id" element={<FeedDetail />} />
           <Route path="/search" element={<SearchResults />} />
+          <Route path="/recap" element={<Recap />} />
         </Routes>
       </Layout>
     </ErrorBoundary>
