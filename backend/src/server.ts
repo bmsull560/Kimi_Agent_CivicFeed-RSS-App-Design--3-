@@ -5,6 +5,7 @@ import { fetchFeed } from "./rss.js";
 import { getCachedArticles, saveArticles } from "./cache.js";
 import { enrichArticle } from "./ai.js";
 import { searchArticles, getRecentArticles } from "./search.js";
+import { generateRecap } from "./recap.js";
 
 const app = express();
 const PORT = process.env.PORT || 4000;
@@ -127,6 +128,13 @@ app.get("/api/search", (req, res) => {
   }
   const results = searchArticles(q, limit);
   res.json({ query: q, results, total: results.length });
+});
+
+// Weekly recap
+app.get("/api/recap", (_req, res) => {
+  const days = Math.min(parseInt(_req.query.days as string) || 7, 30);
+  const recap = generateRecap(days);
+  res.json(recap);
 });
 
 // Cache stats
