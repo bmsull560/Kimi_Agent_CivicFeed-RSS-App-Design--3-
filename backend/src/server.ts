@@ -3,6 +3,7 @@ import cors from "cors";
 import { db } from "./db.js";
 import { fetchFeed } from "./rss.js";
 import { getCachedArticles, saveArticles } from "./cache.js";
+import { enrichArticle } from "./ai.js";
 
 const app = express();
 const PORT = process.env.PORT || 4000;
@@ -59,45 +60,58 @@ app.get("/api/feeds/:id", (req, res) => {
   });
 });
 
-// Get articles for a feed (with caching)
+// Get articles for a feed (with caching + AI enrichment)
 app.get("/api/feeds/:id/articles", async (req, res) => {
   const feedId = req.params.id;
 
   const feedRow = db.prepare("SELECT * FROM feeds WHERE id = ?").get(feedId) as any;
   if (!feedRow) return res.status(404).json({ error: "Feed not found" });
 
+  let entries: any[];
+  let fromCache = false;
+
   // Try cache first
   const cached = getCachedArticles(feedId);
   if (cached && cached.length > 0) {
-    return res.json({
-      entries: cached.map((a) => ({
-        id: a.entryId,
-        title: a.title,
-        link: a.link,
-        description: a.description,
-        pubDate: a.pubDate,
-        author: a.author || undefined,
-        categories: a.categories || undefined,
-        feedId: a.feedId,
-        feedName: feedRow.name,
-        fetchedAt: a.fetchedAt,
-      })),
-      cached: true,
-      error: null,
-    });
+    entries = cached.map((a) => ({
+      id: a.entryId,
+      title: a.title,
+      link: a.link,
+      description: a.description,
+      pubDate: a.pubDate,
+      author: a.author || undefined,
+      categories: a.categories || undefined,
+      feedId: a.feedId,
+      feedName: feedRow.name,
+      fetchedAt: a.fetchedAt,
+    }));
+    fromCache = true;
+  } else {
+    // Fetch fresh
+    const result = await fetchFeed(feedRow.rss_url, feedId, feedRow.name);
+    if (result.error) {
+      return res.status(502).json({ entries: [], cached: false, error: result.error });
+    }
+    entries = result.entries;
+    saveArticles(feedId, result.entries);
   }
 
-  // Fetch fresh
-  const result = await fetchFeed(feedRow.rss_url, feedId, feedRow.name);
-  if (result.error) {
-    return res.status(502).json({ entries: [], cached: false, error: result.error });
-  }
-
-  saveArticles(feedId, result.entries);
+  // Enrich each entry with summary + tags
+  const enrichedEntries = await Promise.all(
+    entries.map(async (entry) => {
+      const enrichment = await enrichArticle(entry.id, feedId, entry.title, entry.description);
+      return {
+        ...entry,
+        aiSummary: enrichment.summary,
+        aiSummarySource: enrichment.summarySource,
+        aiTags: enrichment.tags,
+      };
+    })
+  );
 
   res.json({
-    entries: result.entries,
-    cached: false,
+    entries: enrichedEntries,
+    cached: fromCache,
     error: null,
   });
 });
