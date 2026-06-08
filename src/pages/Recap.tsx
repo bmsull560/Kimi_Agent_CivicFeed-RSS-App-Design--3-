@@ -42,7 +42,7 @@ export default function Recap() {
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    setLoading(true);
+    Promise.resolve().then(() => setLoading(true));
     fetch("/api/recap")
       .then((r) => r.json())
       .then((data) => {
@@ -64,7 +64,7 @@ export default function Recap() {
     author: r.author || undefined,
     feedId: r.feedId,
     feedName: r.feedName,
-    fetchedAt: Date.now(),
+    fetchedAt: 0,
     aiSummary: r.aiSummary,
     aiTags: r.aiTags,
   });

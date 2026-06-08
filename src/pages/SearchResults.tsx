@@ -27,11 +27,13 @@ export default function SearchResults() {
 
   useEffect(() => {
     if (!q.trim()) {
-      setResults([]);
+      Promise.resolve().then(() => setResults([]));
       return;
     }
-    setLoading(true);
-    setError(null);
+    Promise.resolve().then(() => {
+      setLoading(true);
+      setError(null);
+    });
     fetch(`/api/search?q=${encodeURIComponent(q)}`)
       .then((r) => r.json())
       .then((data) => {
@@ -53,7 +55,7 @@ export default function SearchResults() {
     author: r.author || undefined,
     feedId: r.feedId,
     feedName: r.feedName,
-    fetchedAt: Date.now(),
+    fetchedAt: 0,
     aiSummary: r.aiSummary,
     aiTags: r.aiTags,
   });
