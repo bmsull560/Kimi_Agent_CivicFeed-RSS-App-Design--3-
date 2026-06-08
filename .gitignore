@@ -28,3 +28,6 @@ Thumbs.db
 
 # Validation state
 scripts/.validator-state.json
+
+# Worktrees
+.worktrees
