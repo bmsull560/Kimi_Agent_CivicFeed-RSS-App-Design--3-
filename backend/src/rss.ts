@@ -47,12 +47,13 @@ function parseRssItems(items: any[], feedId: string, feedName: string): RssEntry
   const entries: RssEntry[] = [];
   const now = Date.now();
   for (const item of items) {
-    const title = (item.title || "").trim();
-    const link = (item.link || item.guid || "").trim();
-    const description = item.description || item["content:encoded"] || "";
-    const pubRaw = item.pubDate || item["dc:date"] || "";
-    const author = item["dc:creator"] || item.author || undefined;
-    const guid = (item.guid || "").trim();
+    const getTextVal = (v: any): string => typeof v === "string" ? v : (v?.["#text"] || "");
+    const title = getTextVal(item.title).trim();
+    const link = (getTextVal(item.link) || getTextVal(item.guid)).trim();
+    const description = getTextVal(item.description) || getTextVal(item["content:encoded"]);
+    const pubRaw = getTextVal(item.pubDate) || getTextVal(item["dc:date"]);
+    const author = getTextVal(item["dc:creator"]) || getTextVal(item.author) || undefined;
+    const guid = getTextVal(item.guid).trim();
     const cats: string[] = [];
     if (item.category) {
       const raw = Array.isArray(item.category) ? item.category : [item.category];
