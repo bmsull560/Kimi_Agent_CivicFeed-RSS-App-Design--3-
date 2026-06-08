@@ -44,6 +44,28 @@ function initSchema() {
 
     CREATE INDEX IF NOT EXISTS idx_article_cache_feed_id ON article_cache(feed_id);
     CREATE INDEX IF NOT EXISTS idx_article_cache_fetched_at ON article_cache(fetched_at);
+
+    CREATE TABLE IF NOT EXISTS article_summaries (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      entry_id TEXT NOT NULL,
+      feed_id TEXT NOT NULL,
+      summary TEXT NOT NULL,
+      source TEXT NOT NULL DEFAULT 'extractive',
+      created_at INTEGER NOT NULL,
+      UNIQUE(entry_id)
+    );
+
+    CREATE TABLE IF NOT EXISTS article_tags (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      entry_id TEXT NOT NULL,
+      feed_id TEXT NOT NULL,
+      tag TEXT NOT NULL,
+      source TEXT NOT NULL DEFAULT 'rss',
+      UNIQUE(entry_id, tag)
+    );
+
+    CREATE INDEX IF NOT EXISTS idx_summaries_entry_id ON article_summaries(entry_id);
+    CREATE INDEX IF NOT EXISTS idx_tags_entry_id ON article_tags(entry_id);
   `);
 }
 
