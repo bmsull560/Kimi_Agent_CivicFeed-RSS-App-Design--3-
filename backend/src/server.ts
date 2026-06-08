@@ -4,6 +4,7 @@ import { db } from "./db.js";
 import { fetchFeed } from "./rss.js";
 import { getCachedArticles, saveArticles } from "./cache.js";
 import { enrichArticle } from "./ai.js";
+import { searchArticles, getRecentArticles } from "./search.js";
 
 const app = express();
 const PORT = process.env.PORT || 4000;
@@ -114,6 +115,18 @@ app.get("/api/feeds/:id/articles", async (req, res) => {
     cached: fromCache,
     error: null,
   });
+});
+
+// Search articles
+app.get("/api/search", (req, res) => {
+  const q = (req.query.q as string) || "";
+  const limit = Math.min(parseInt(req.query.limit as string) || 20, 100);
+  if (!q.trim()) {
+    const recent = getRecentArticles(limit);
+    return res.json({ query: "", results: recent, total: recent.length });
+  }
+  const results = searchArticles(q, limit);
+  res.json({ query: q, results, total: results.length });
 });
 
 // Cache stats
