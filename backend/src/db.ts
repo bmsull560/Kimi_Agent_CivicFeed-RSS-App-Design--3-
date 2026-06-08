@@ -66,7 +66,53 @@ function initSchema() {
 
     CREATE INDEX IF NOT EXISTS idx_summaries_entry_id ON article_summaries(entry_id);
     CREATE INDEX IF NOT EXISTS idx_tags_entry_id ON article_tags(entry_id);
+
+    -- Full-text search virtual table
+    CREATE VIRTUAL TABLE IF NOT EXISTS article_search USING fts5(
+      entry_id,
+      title,
+      description,
+      summary,
+      tags,
+      content='',
+      content_rowid='id'
+    );
+
+    -- Trigger: index on article_cache insert
+    CREATE TRIGGER IF NOT EXISTS trg_article_search_insert
+    AFTER INSERT ON article_cache
+    BEGIN
+      INSERT INTO article_search(entry_id, title, description, summary, tags)
+      VALUES (
+        NEW.entry_id,
+        NEW.title,
+        COALESCE(NEW.description, ''),
+        '',
+        COALESCE(NEW.categories, '')
+      );
+    END;
+
+    -- Trigger: delete from index on article_cache delete
+    CREATE TRIGGER IF NOT EXISTS trg_article_search_delete
+    AFTER DELETE ON article_cache
+    BEGIN
+      DELETE FROM article_search WHERE entry_id = OLD.entry_id;
+    END;
   `);
+
+  // Populate FTS index from existing cached articles (one-time)
+  const ftsCount = (db.prepare("SELECT COUNT(*) as c FROM article_search").get() as any).c;
+  const cacheCount = (db.prepare("SELECT COUNT(*) as c FROM article_cache").get() as any).c;
+  if (ftsCount === 0 && cacheCount > 0) {
+    const rows = db.prepare("SELECT entry_id, title, description, categories FROM article_cache").all() as any[];
+    const insert = db.prepare("INSERT INTO article_search(entry_id, title, description, summary, tags) VALUES (?, ?, ?, ?, ?)");
+    db.transaction(() => {
+      for (const r of rows) {
+        insert.run(r.entry_id, r.title, r.description || '', '', r.categories || '');
+      }
+    })();
+    console.log(`Populated FTS index with ${rows.length} articles.`);
+  }
 }
 
 function seedFeeds() {
