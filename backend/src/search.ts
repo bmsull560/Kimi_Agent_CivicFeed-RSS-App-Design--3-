@@ -22,7 +22,23 @@ export function searchArticles(query: string, limit: number = 20): SearchResult[
     .replace(/"/g, '""')
     .trim();
 
-  const stmt = db.prepare(`
+  // Step 1: Get matching entry_ids from FTS5 ordered by rank
+  const ftsStmt = db.prepare(`
+    SELECT entry_id, rank
+    FROM article_search
+    WHERE article_search MATCH ?
+    ORDER BY rank
+    LIMIT ?
+  `);
+
+  const ftsRows = ftsStmt.all(`"${safeQuery}"*`, limit) as any[];
+  if (ftsRows.length === 0) return [];
+
+  // Step 2: Look up full article data for each match
+  const entryIds = ftsRows.map((r) => r.entry_id);
+  const placeholders = entryIds.map(() => "?").join(",");
+
+  const articleStmt = db.prepare(`
     SELECT
       ac.entry_id,
       ac.feed_id,
@@ -31,24 +47,25 @@ export function searchArticles(query: string, limit: number = 20): SearchResult[
       ac.description,
       ac.pub_date,
       ac.author,
-      f.name as feed_name,
-      ac.fetched_at,
-      rank
-    FROM article_search AS s
-    JOIN article_cache AS ac ON s.entry_id = ac.entry_id
+      f.name as feed_name
+    FROM article_cache AS ac
     JOIN feeds AS f ON ac.feed_id = f.id
-    WHERE article_search MATCH ?
-    ORDER BY rank
-    LIMIT ?
+    WHERE ac.entry_id IN (${placeholders})
   `);
 
-  const rows = stmt.all(`"${safeQuery}"*`, limit) as any[];
+  const articleRows = articleStmt.all(...entryIds) as any[];
 
-  // Fetch enrichment for each result
+  // Build a map for quick lookup
+  const articleMap = new Map<string, any>();
+  for (const r of articleRows) articleMap.set(r.entry_id, r);
+
+  // Fetch enrichment
   const summaryStmt = db.prepare("SELECT summary FROM article_summaries WHERE entry_id = ?");
   const tagStmt = db.prepare("SELECT tag FROM article_tags WHERE entry_id = ?");
 
-  return rows.map((r) => {
+  return ftsRows.map((ftsRow) => {
+    const r = articleMap.get(ftsRow.entry_id);
+    if (!r) return null;
     const sumRow = summaryStmt.get(r.entry_id) as any;
     const tagRows = tagStmt.all(r.entry_id) as any[];
     return {
@@ -60,11 +77,11 @@ export function searchArticles(query: string, limit: number = 20): SearchResult[
       pubDate: r.pub_date,
       author: r.author,
       feedName: r.feed_name,
-      rank: r.rank,
+      rank: ftsRow.rank,
       aiSummary: sumRow?.summary,
       aiTags: tagRows.map((t) => t.tag),
     };
-  });
+  }).filter((x): x is SearchResult => x !== null);
 }
 
 export function getRecentArticles(limit: number = 50): SearchResult[] {

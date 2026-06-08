@@ -67,15 +67,13 @@ function initSchema() {
     CREATE INDEX IF NOT EXISTS idx_summaries_entry_id ON article_summaries(entry_id);
     CREATE INDEX IF NOT EXISTS idx_tags_entry_id ON article_tags(entry_id);
 
-    -- Full-text search virtual table
+    -- Full-text search virtual table (self-contained, not contentless)
     CREATE VIRTUAL TABLE IF NOT EXISTS article_search USING fts5(
       entry_id,
       title,
       description,
       summary,
-      tags,
-      content='',
-      content_rowid='id'
+      tags
     );
 
     -- Trigger: index on article_cache insert
@@ -99,6 +97,20 @@ function initSchema() {
       DELETE FROM article_search WHERE entry_id = OLD.entry_id;
     END;
   `);
+
+  // Migration: drop and recreate if using old contentless schema
+  const tableInfo = db.prepare("PRAGMA table_info(article_search)").all() as any[];
+  const hasRankCol = tableInfo.some((c) => c.name === "rank");
+  if (tableInfo.length > 0 && !hasRankCol) {
+    // Old broken contentless table — rebuild
+    db.exec(`DROP TABLE IF EXISTS article_search;`);
+    db.exec(`
+      CREATE VIRTUAL TABLE article_search USING fts5(
+        entry_id, title, description, summary, tags
+      );
+    `);
+    console.log("Recreated article_search FTS5 table (was contentless).");
+  }
 
   // Populate FTS index from existing cached articles (one-time)
   const ftsCount = (db.prepare("SELECT COUNT(*) as c FROM article_search").get() as any).c;
