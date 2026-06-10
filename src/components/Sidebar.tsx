@@ -4,7 +4,7 @@ import {
   Train, AlertTriangle, Palette, Eye, FileText, Star, Newspaper, BookOpen, Sprout,
   Cpu, Home, HeartPulse,
 } from "lucide-react";
-import { feedStats, categoryList } from "../data/feeds";
+import { feedStats, categoryList, feeds } from "../data/feeds";
 
 const categoryIcons: Record<string, React.ReactNode> = {
   "Finance & Economy": <TrendingUp size={18} />,
@@ -43,6 +43,8 @@ export default function Sidebar({ isOpen, onClose }: SidebarProps) {
 
   const handleCategory = (cat: string) => { navigate(`/feeds?category=${encodeURIComponent(cat)}`); onClose(); };
   const handleAllFeeds = () => { navigate("/feeds"); onClose(); };
+  const currentPriority = new URLSearchParams(location.search).get("priority") || "";
+  const handlePriority = (tier: number) => { navigate(`/feeds?priority=${tier}`); onClose(); };
 
   return (
     <>
@@ -66,6 +68,29 @@ export default function Sidebar({ isOpen, onClose }: SidebarProps) {
                 <button key={cat} onClick={() => handleCategory(cat)} className={`w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm transition-colors ${isActive ? "bg-blue-600 text-white font-medium" : "text-slate-700 hover:bg-slate-100"}`} type="button">
                   <span className={isActive ? "text-white" : "text-slate-500"}>{categoryIcons[cat] || <Newspaper size={18} />}</span>
                   <span className="truncate">{cat}</span>
+                  <span className={`ml-auto text-[0.6875rem] flex-shrink-0 ${isActive ? "text-white/70" : "text-slate-400"}`}>{count}</span>
+                </button>
+              );
+            })}
+          </div>
+          <div className="px-4 pt-4 pb-1">
+            <p className="text-[0.6875rem] font-semibold text-slate-400 uppercase tracking-wider">Priority</p>
+          </div>
+          <div className="flex-1 overflow-y-auto px-3 pb-4 space-y-0.5">
+            {[
+              { tier: 1, label: "Tier 1 — Safety & Emergency", icon: <AlertTriangle size={18} /> },
+              { tier: 2, label: "Tier 2 — Financial", icon: <TrendingUp size={18} /> },
+              { tier: 3, label: "Tier 3 — Transportation", icon: <Train size={18} /> },
+              { tier: 4, label: "Tier 4 — Environment & Energy", icon: <Leaf size={18} /> },
+              { tier: 5, label: "Tier 5 — Security", icon: <Shield size={18} /> },
+              { tier: 6, label: "Tier 6 — Oversight", icon: <Eye size={18} /> },
+            ].map(({ tier, label, icon }) => {
+              const isActive = currentPriority === String(tier);
+              const count = feeds.filter(f => f.priority === tier).length;
+              return (
+                <button key={tier} onClick={() => handlePriority(tier)} className={`w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm transition-colors ${isActive ? "bg-blue-600 text-white font-medium" : "text-slate-700 hover:bg-slate-100"}`} type="button">
+                  <span className={isActive ? "text-white" : "text-slate-500"}>{icon}</span>
+                  <span className="truncate">{label}</span>
                   <span className={`ml-auto text-[0.6875rem] flex-shrink-0 ${isActive ? "text-white/70" : "text-slate-400"}`}>{count}</span>
                 </button>
               );
