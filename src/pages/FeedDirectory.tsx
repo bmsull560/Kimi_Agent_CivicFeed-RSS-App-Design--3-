@@ -13,25 +13,42 @@ export default function FeedDirectory() {
   const navigate = useNavigate();
   const categoryParam = searchParams.get("category") || "";
   const qParam = searchParams.get("q") || "";
+  const priorityParam = searchParams.get("priority");
+  const priorityFilter = priorityParam ? parseInt(priorityParam, 10) : null;
   const [viewMode, setViewMode] = useState<"list" | "grid">("list");
   const [localQ, setLocalQ] = useState(qParam);
 
   const filteredFeeds = useMemo(() => {
     let result = categoryParam ? getFeedsByCategory(categoryParam) : feeds;
     if (qParam) result = searchFeeds(qParam).filter(f => categoryParam ? f.category === categoryParam : true);
+    if (priorityFilter != null && !isNaN(priorityFilter)) {
+      result = result.filter(f => f.priority === priorityFilter);
+    }
     return result;
-  }, [categoryParam, qParam]);
+  }, [categoryParam, qParam, priorityFilter]);
 
   const handleSearch = () => { const p = new URLSearchParams(searchParams); if (localQ) p.set("q", localQ); else p.delete("q"); setSearchParams(p); };
   const clearSearch = () => { setLocalQ(""); const p = new URLSearchParams(searchParams); p.delete("q"); setSearchParams(p); };
   const clearCategory = () => { const p = new URLSearchParams(searchParams); p.delete("category"); setSearchParams(p); };
+  const clearPriority = () => { const p = new URLSearchParams(searchParams); p.delete("priority"); setSearchParams(p); };
+
+  const pageTitle = priorityFilter
+    ? `Tier ${priorityFilter} Priority Feeds`
+    : categoryParam
+    ? categoryParam
+    : qParam
+    ? `Search: "${qParam}"`
+    : "All Feeds";
 
   return (
     <div className="space-y-4">
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
         <div>
-          <h1 className="text-xl font-bold text-slate-900">{categoryParam || "All Feeds"}</h1>
-          <p className="text-sm text-slate-500">{filteredFeeds.length} feed{filteredFeeds.length !== 1 ? "s" : ""}{categoryParam && <button onClick={clearCategory} className="ml-2 text-blue-600 hover:underline text-xs" type="button">Clear filter</button>}</p>
+          <h1 className="text-xl font-bold text-slate-900">{pageTitle}</h1>
+          <p className="text-sm text-slate-500">{filteredFeeds.length} feed{filteredFeeds.length !== 1 ? "s" : ""}
+            {categoryParam && <button onClick={clearCategory} className="ml-2 text-blue-600 hover:underline text-xs" type="button">Clear category</button>}
+            {priorityFilter != null && !isNaN(priorityFilter) && <button onClick={clearPriority} className="ml-2 text-blue-600 hover:underline text-xs" type="button">Clear priority</button>}
+          </p>
         </div>
         <div className="flex items-center gap-2">
           <div className="relative">
@@ -47,7 +64,7 @@ export default function FeedDirectory() {
       </div>
 
       {filteredFeeds.length === 0 ? (
-        <EmptyState message="No feeds found" subMessage="Try adjusting your search or category filter." action={{ label: "Clear Filters", onClick: () => { clearSearch(); clearCategory(); } }} />
+        <EmptyState message="No feeds found" subMessage="Try adjusting your search, category, or priority filter." action={{ label: "Clear Filters", onClick: () => { clearSearch(); clearCategory(); clearPriority(); } }} />
       ) : viewMode === "grid" ? (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
           {filteredFeeds.map(feed => (
