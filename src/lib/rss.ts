@@ -146,14 +146,14 @@ export function parseRssXml(xmlText: string, feedId: string, feedName: string): 
   return [];
 }
 
-function fetchWithTimeout(url: string, timeoutMs: number): Promise<Response> {
+function fetchWithTimeout(url: string, timeoutMs: number, init?: RequestInit): Promise<Response> {
   return new Promise((resolve, reject) => {
     const controller = new AbortController();
     const timer = setTimeout(() => {
       controller.abort();
       reject(new Error(`Timeout after ${timeoutMs}ms`));
     }, timeoutMs);
-    fetch(url, { signal: controller.signal })
+    fetch(url, { signal: controller.signal, ...init })
       .then(response => { clearTimeout(timer); resolve(response); })
       .catch(err => { clearTimeout(timer); reject(err); });
   });
@@ -162,7 +162,12 @@ function fetchWithTimeout(url: string, timeoutMs: number): Promise<Response> {
 export async function fetchFeed(url: string, feedId: string, feedName: string): Promise<FetchResult> {
   const errors: string[] = [];
   try {
-    const res = await fetchWithTimeout(url, 12000);
+    const res = await fetchWithTimeout(url, 12000, {
+      headers: {
+        "User-Agent": "Feedly/1.0 (+http://www.feedly.com/fetcher.html)",
+        "Accept": "application/rss+xml, application/atom+xml, application/xml, text/xml, */*",
+      },
+    });
     if (res.ok) {
       const xml = await res.text();
       const entries = parseRssXml(xml, feedId, feedName);
