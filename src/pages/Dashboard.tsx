@@ -4,7 +4,7 @@ import {
   Train, AlertTriangle, Palette, Eye, FileText, Star, Newspaper, BookOpen, Sprout,
   Cpu, Home, HeartPulse, RefreshCw, ArrowRight, Rss,
 } from "lucide-react";
-import { feedStats, categoryList } from "../data/feeds";
+import { feedStats, categoryList, getFeedsByPriority } from "../data/feeds";
 import { useFeedCache } from "../hooks/useFeedCache";
 import CategoryCard from "../components/CategoryCard";
 import EntryCard from "../components/EntryCard";
@@ -79,6 +79,35 @@ export default function Dashboard() {
           <div className="bg-slate-50 rounded-lg p-3 text-center"><p className="text-2xl font-bold text-blue-600">{Object.keys(feedStats.byCategory).length}</p><p className="text-[0.6875rem] text-slate-500 uppercase tracking-wide">Categories</p></div>
           <div className="bg-slate-50 rounded-lg p-3 text-center"><p className="text-2xl font-bold text-blue-600">{cachedData.length}</p><p className="text-[0.6875rem] text-slate-500 uppercase tracking-wide">Cached</p></div>
           <div className="bg-slate-50 rounded-lg p-3 text-center"><p className="text-2xl font-bold text-blue-600">{cacheStats.oldestFetch ? formatRelativeTime(cacheStats.oldestFetch) : "—"}</p><p className="text-[0.6875rem] text-slate-500 uppercase tracking-wide">Last Update</p></div>
+        </div>
+      </section>
+
+      {/* Critical Alerts — Tier 1 */}
+      <section className="mb-8">
+        <div className="flex items-center justify-between mb-4">
+          <h2 className="text-lg font-semibold text-slate-900 flex items-center gap-2">
+            <AlertTriangle className="text-red-500" size={20} />
+            Critical Alerts — Tier 1
+          </h2>
+          <button onClick={() => navigate("/feeds?priority=1")} className="text-sm text-blue-600 hover:text-blue-700 font-medium">
+            View all Tier 1 →
+          </button>
+        </div>
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+          {getFeedsByPriority(1).slice(0, 6).map(feed => (
+            <div key={feed.id} onClick={() => navigate(`/feed/${feed.id}`)} className="card card-hover cursor-pointer p-4">
+              <div className="flex items-start justify-between">
+                <div>
+                  <h3 className="font-semibold text-slate-900 text-sm">{feed.shortName}</h3>
+                  <p className="text-xs text-slate-500 mt-1">{feed.agency}</p>
+                </div>
+                <span className="inline-flex items-center px-2 py-0.5 rounded text-[0.6875rem] font-medium bg-red-50 text-red-700">
+                  Tier 1
+                </span>
+              </div>
+              <p className="text-xs text-slate-600 mt-2 line-clamp-2">{feed.description}</p>
+            </div>
+          ))}
         </div>
       </section>
 
