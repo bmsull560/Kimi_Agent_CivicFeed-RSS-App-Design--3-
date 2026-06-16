@@ -22,16 +22,24 @@ function saveCache(entries: CacheEntry[]): void {
       const reduced = entries
         .sort((a, b) => b.accessedAt - a.accessedAt)
         .slice(0, Math.max(half, 25));
-      try { localStorage.setItem(CACHE_KEY, JSON.stringify(reduced)); } catch {}
+      try {
+        localStorage.setItem(CACHE_KEY, JSON.stringify(reduced));
+      } catch {
+        return;
+      }
     }
   }
 }
 
-export function getCachedFeed(feedId: string): CacheEntry | null {
+export function isCacheFresh(entry: CacheEntry): boolean {
+  return Date.now() - entry.fetchedAt <= CACHE_TTL_MS;
+}
+
+export function getCachedFeed(feedId: string, options: { allowStale?: boolean } = {}): CacheEntry | null {
   const cache = loadCache();
   const entry = cache.find(e => e.feedId === feedId);
   if (!entry) return null;
-  if (Date.now() - entry.fetchedAt > CACHE_TTL_MS) return null;
+  if (!options.allowStale && !isCacheFresh(entry)) return null;
   entry.accessedAt = Date.now();
   saveCache(cache);
   return entry;
@@ -59,7 +67,11 @@ export function invalidateFeed(feedId: string): void {
 }
 
 export function invalidateAll(): void {
-  try { localStorage.removeItem(CACHE_KEY); } catch {}
+  try {
+    localStorage.removeItem(CACHE_KEY);
+  } catch {
+    return;
+  }
 }
 
 export function getCacheStats(): { totalCached: number; oldestFetch: number | null } {

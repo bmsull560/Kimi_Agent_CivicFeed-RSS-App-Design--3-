@@ -1,3 +1,4 @@
+import { XMLParser } from "fast-xml-parser";
 import type { RssEntry, FetchResult } from "../types";
 
 const PROXIES = [
@@ -17,6 +18,16 @@ function generateEntryId(link: string, title: string, pubDate: string): string {
   return `entry-${Math.abs(hash).toString(36)}`;
 }
 
+function resolveUrl(rawUrl: string, baseUrl?: string): string {
+  const trimmed = rawUrl.trim();
+  if (!trimmed || !baseUrl) return trimmed;
+  try {
+    return new URL(trimmed, baseUrl).toString();
+  } catch {
+    return trimmed;
+  }
+}
+
 function normalizeDate(dateStr: string): string {
   if (!dateStr) return new Date().toISOString();
   const cleaned = dateStr.replace(/\s+\(.*\)$/, "").trim();
@@ -24,33 +35,77 @@ function normalizeDate(dateStr: string): string {
   if (!isNaN(d.getTime())) return d.toISOString();
   const usMatch = cleaned.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})/);
   if (usMatch) {
-    const [_, m, d, y] = usMatch;
+    const m = usMatch[1] ?? "";
+    const d = usMatch[2] ?? "";
+    const y = usMatch[3] ?? "";
     const dd = new Date(`${y}-${m.padStart(2, "0")}-${d.padStart(2, "0")}`);
     if (!isNaN(dd.getTime())) return dd.toISOString();
   }
   return new Date().toISOString();
 }
 
-function parseRssItems(items: Element[], feedId: string, feedName: string): RssEntry[] {
+type XmlNode = Record<string, unknown>;
+
+const xmlParser = new XMLParser({
+  attributeNamePrefix: "@_",
+  cdataPropName: "__cdata",
+  ignoreAttributes: false,
+  parseAttributeValue: false,
+  parseTagValue: false,
+  trimValues: true,
+});
+
+function asArray<T>(value: T | T[] | undefined): T[] {
+  if (value === undefined) return [];
+  return Array.isArray(value) ? value : [value];
+}
+
+function isXmlNode(value: unknown): value is XmlNode {
+  return typeof value === "object" && value !== null;
+}
+
+function textValue(value: unknown): string {
+  if (value === undefined || value === null) return "";
+  if (typeof value === "string" || typeof value === "number" || typeof value === "boolean") return String(value);
+  if (!isXmlNode(value)) return "";
+  return textValue(value["#text"]) || textValue(value.__cdata);
+}
+
+function attrValue(value: unknown, attrName: string): string {
+  if (!isXmlNode(value)) return "";
+  return textValue(value[`@_${attrName}`]);
+}
+
+function parseXmlDocument(xmlText: string): XmlNode | null {
+  try {
+    const parsed = xmlParser.parse(xmlText);
+    return isXmlNode(parsed) ? parsed : null;
+  } catch {
+    return null;
+  }
+}
+
+function extractHtmlItems(xmlText: string): XmlNode[] {
+  const itemBlocks = xmlText.match(/<item\b[\s\S]*?<\/item>/gi);
+  if (!itemBlocks?.length) return [];
+  const parsed = parseXmlDocument(`<rss><channel>${itemBlocks.join("")}</channel></rss>`);
+  const channel = isXmlNode(parsed?.rss) ? parsed.rss.channel : undefined;
+  return isXmlNode(channel) ? asArray(channel.item).filter(isXmlNode) : [];
+}
+
+function parseRssItems(items: XmlNode[], feedId: string, feedName: string, baseUrl?: string): RssEntry[] {
   const entries: RssEntry[] = [];
   const now = Date.now();
   for (const item of items) {
-    const getText = (tag: string) => {
-      const el = item.getElementsByTagName(tag)[0];
-      return el ? el.textContent || "" : "";
-    };
+    const getText = (tag: string) => textValue(item[tag]);
     const title = getText("title").trim();
-    const link = getText("link").trim() || item.getElementsByTagName("guid")[0]?.textContent?.trim() || "";
+    const rawLink = getText("link").trim() || getText("guid").trim();
+    const link = resolveUrl(rawLink, baseUrl);
     const description = getText("description") || getText("content:encoded") || "";
     const pubRaw = getText("pubDate") || getText("dc:date");
     const author = getText("dc:creator") || getText("author") || undefined;
     const guid = getText("guid").trim();
-    const cats: string[] = [];
-    const catEls = item.getElementsByTagName("category");
-    for (let i = 0; i < catEls.length; i++) {
-      const t = catEls[i].textContent?.trim();
-      if (t) cats.push(t);
-    }
+    const cats = asArray(item.category).map(textValue).map(t => t.trim()).filter(Boolean);
     if (!title && !link) continue;
     entries.push({
       id: guid || generateEntryId(link, title, pubRaw),
@@ -68,21 +123,18 @@ function parseRssItems(items: Element[], feedId: string, feedName: string): RssE
   return entries;
 }
 
-function parseAtomEntries(entries: Element[], feedId: string, feedName: string): RssEntry[] {
+function parseAtomEntries(entries: XmlNode[], feedId: string, feedName: string, baseUrl?: string): RssEntry[] {
   const result: RssEntry[] = [];
   const now = Date.now();
   for (const entry of entries) {
-    const getText = (tag: string) => {
-      const el = entry.getElementsByTagName(tag)[0];
-      return el ? el.textContent || "" : "";
-    };
+    const getText = (tag: string) => textValue(entry[tag]);
     const title = getText("title").trim();
     let link = "";
-    const links = entry.getElementsByTagName("link");
-    for (let i = 0; i < links.length; i++) {
-      const rel = links[i].getAttribute("rel");
+    const links = asArray(entry.link);
+    for (const atomLink of links) {
+      const rel = attrValue(atomLink, "rel");
       if (!rel || rel === "alternate") {
-        link = links[i].getAttribute("href") || "";
+        link = resolveUrl(attrValue(atomLink, "href") || textValue(atomLink), baseUrl);
         break;
       }
     }
@@ -90,16 +142,13 @@ function parseAtomEntries(entries: Element[], feedId: string, feedName: string):
     const pubRaw = getText("published") || getText("updated");
     const id = getText("id").trim();
     let author: string | undefined;
-    const authorEl = entry.getElementsByTagName("author")[0];
-    if (authorEl) {
-      author = authorEl.getElementsByTagName("name")[0]?.textContent || undefined;
+    if (isXmlNode(entry.author)) {
+      author = textValue(entry.author.name) || textValue(entry.author) || undefined;
     }
-    const cats: string[] = [];
-    const catEls = entry.getElementsByTagName("category");
-    for (let i = 0; i < catEls.length; i++) {
-      const t = catEls[i].getAttribute("term") || catEls[i].textContent;
-      if (t) cats.push(t.trim());
-    }
+    const cats = asArray(entry.category)
+      .map(category => attrValue(category, "term") || textValue(category))
+      .map(t => t.trim())
+      .filter(Boolean);
     if (!title && !link) continue;
     result.push({
       id: id || generateEntryId(link, title, pubRaw),
@@ -117,33 +166,23 @@ function parseAtomEntries(entries: Element[], feedId: string, feedName: string):
   return result;
 }
 
-export function parseRssXml(xmlText: string, feedId: string, feedName: string): RssEntry[] {
-  const parser = new DOMParser();
-  const doc = parser.parseFromString(xmlText, "application/xml");
-  const parserError = doc.querySelector("parsererror");
-  if (parserError) {
-    const htmlDoc = parser.parseFromString(xmlText, "text/html");
-    const items = htmlDoc.querySelectorAll("item");
-    if (items.length > 0) {
-      const elements: Element[] = [];
-      items.forEach(i => elements.push(i as Element));
-      return parseRssItems(elements, feedId, feedName);
-    }
-    return [];
-  }
-  const rssItems = doc.getElementsByTagName("item");
-  if (rssItems.length > 0) {
-    const elements: Element[] = [];
-    for (let i = 0; i < rssItems.length; i++) elements.push(rssItems[i]);
-    return parseRssItems(elements, feedId, feedName);
-  }
-  const atomEntries = doc.getElementsByTagName("entry");
-  if (atomEntries.length > 0) {
-    const elements: Element[] = [];
-    for (let i = 0; i < atomEntries.length; i++) elements.push(atomEntries[i]);
-    return parseAtomEntries(elements, feedId, feedName);
-  }
-  return [];
+export function parseRssXml(xmlText: string, feedId: string, feedName: string, baseUrl?: string): RssEntry[] {
+  const doc = parseXmlDocument(xmlText);
+  const rss = isXmlNode(doc?.rss) ? doc.rss : undefined;
+  const channel = isXmlNode(rss) && isXmlNode(rss.channel) ? rss.channel : undefined;
+  const rssItems = channel ? asArray(channel.item).filter(isXmlNode) : [];
+  if (rssItems.length > 0) return parseRssItems(rssItems, feedId, feedName, baseUrl);
+
+  const rdf = isXmlNode(doc?.["rdf:RDF"]) ? doc["rdf:RDF"] : undefined;
+  const rdfItems = isXmlNode(rdf) ? asArray(rdf.item).filter(isXmlNode) : [];
+  if (rdfItems.length > 0) return parseRssItems(rdfItems, feedId, feedName, baseUrl);
+
+  const atomFeed = isXmlNode(doc?.feed) ? doc.feed : undefined;
+  const atomEntries = isXmlNode(atomFeed) ? asArray(atomFeed.entry).filter(isXmlNode) : [];
+  if (atomEntries.length > 0) return parseAtomEntries(atomEntries, feedId, feedName, baseUrl);
+
+  const htmlItems = extractHtmlItems(xmlText);
+  return htmlItems.length > 0 ? parseRssItems(htmlItems, feedId, feedName, baseUrl) : [];
 }
 
 function fetchWithTimeout(url: string, timeoutMs: number, init?: RequestInit): Promise<Response> {
@@ -170,7 +209,7 @@ export async function fetchFeed(url: string, feedId: string, feedName: string): 
     });
     if (res.ok) {
       const xml = await res.text();
-      const entries = parseRssXml(xml, feedId, feedName);
+      const entries = parseRssXml(xml, feedId, feedName, url);
       if (entries.length > 0) return { entries, error: null };
     }
   } catch (e) {
@@ -183,7 +222,7 @@ export async function fetchFeed(url: string, feedId: string, feedName: string): 
       if (!res.ok) { errors.push(`proxy: HTTP ${res.status}`); continue; }
       const xml = await res.text();
       if (!xml || xml.length < 50) { errors.push(`proxy: Empty response`); continue; }
-      const entries = parseRssXml(xml, feedId, feedName);
+      const entries = parseRssXml(xml, feedId, feedName, url);
       if (entries.length > 0) return { entries, error: null };
       errors.push(`proxy: No entries parsed`);
     } catch (e) {

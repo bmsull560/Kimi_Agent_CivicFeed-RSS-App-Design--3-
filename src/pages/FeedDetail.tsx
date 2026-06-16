@@ -62,8 +62,11 @@ export default function FeedDetail() {
        ) : (
          <div className="card px-5">
            <div className="py-3 border-b border-slate-100 flex items-center justify-between">
-             <h2 className="text-sm font-semibold text-slate-700">{entries.length} entr{entries.length === 1 ? "y" : "ies"}</h2>
-             {status === "loading" && <RefreshCw size={14} className="animate-spin text-slate-400" />}
+             <div>
+               <h2 className="text-sm font-semibold text-slate-700">{entries.length} entr{entries.length === 1 ? "y" : "ies"}</h2>
+               {status === "error" && error && <p className="text-xs text-amber-700 mt-1">Showing cached entries. Refresh failed: {error}</p>}
+             </div>
+             {status === "loading" && <RefreshCw size={14} className="animate-spin text-slate-400" aria-label="Refreshing entries" />}
            </div>
            {entries.map(entry => <EntryCard key={entry.id} entry={entry} />)}
          </div>

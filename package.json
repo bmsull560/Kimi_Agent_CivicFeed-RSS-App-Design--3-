@@ -7,7 +7,17 @@
     "dev": "vite",
     "build": "tsc -b && vite build",
     "lint": "eslint .",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "audit:acceptance": "node scripts/audit-acceptance.mjs",
+    "validate:live-feeds": "node scripts/validate-live-feeds.mjs",
+    "apply:live-feed-statuses": "node scripts/apply-live-feed-statuses.mjs",
+    "sync:working-feeds": "node scripts/sync-working-feeds.mjs",
+    "verify:feeds": "node scripts/verify-feeds.mjs",
+    "verify:rss-cache": "node scripts/verify-rss-cache.mjs",
+    "verify:routes": "node scripts/verify-route-render.mjs",
+    "verify:browser": "playwright test --config playwright.config.ts",
+    "verify:dist": "node scripts/verify-dist.mjs",
+    "verify": "npm run lint && npm run verify:feeds && npm run verify:rss-cache && npm run verify:routes && npm run build && npm run verify:dist && npm run verify:browser"
   },
   "dependencies": {
     "@hookform/resolvers": "^5.2.2",
@@ -52,7 +62,6 @@
     "react-resizable-panels": "^4.2.2",
     "react-router": "^7.6.1",
     "react-router-dom": "^7.17.0",
-    "recharts": "^2.15.4",
     "sonner": "^2.0.7",
     "tailwind-merge": "^3.4.0",
     "vaul": "^1.1.2",
@@ -60,6 +69,7 @@
   },
   "devDependencies": {
     "@eslint/js": "^9.39.1",
+    "@playwright/test": "^1.61.0",
     "@types/node": "^24.10.1",
     "@types/react": "^19.2.5",
     "@types/react-dom": "^19.2.3",
@@ -70,7 +80,6 @@
     "eslint-plugin-react-refresh": "^0.4.24",
     "fast-xml-parser": "^5.8.0",
     "globals": "^16.5.0",
-    "plugin-inspect-react-code": "^1.0.3",
     "postcss": "^8.5.6",
     "tailwindcss": "^3.4.19",
     "tailwindcss-animate": "^1.0.7",

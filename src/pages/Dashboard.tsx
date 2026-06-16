@@ -10,7 +10,6 @@ import CategoryCard from "../components/CategoryCard";
 import EntryCard from "../components/EntryCard";
 import EmptyState from "../components/EmptyState";
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
 const byCategory = feedStats.byCategory as Record<string, number>;
 
 const categoryIcons: Record<string, React.ReactNode> = {
@@ -95,7 +94,7 @@ export default function Dashboard() {
         </div>
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
           {getFeedsByPriority(1).slice(0, 6).map(feed => (
-            <div key={feed.id} onClick={() => navigate(`/feed/${feed.id}`)} className="card card-hover cursor-pointer p-4">
+            <button key={feed.id} onClick={() => navigate(`/feed/${feed.id}`)} className="card card-hover cursor-pointer p-4 text-left" type="button">
               <div className="flex items-start justify-between">
                 <div>
                   <h3 className="font-semibold text-slate-900 text-sm">{feed.shortName}</h3>
@@ -106,7 +105,7 @@ export default function Dashboard() {
                 </span>
               </div>
               <p className="text-xs text-slate-600 mt-2 line-clamp-2">{feed.description}</p>
-            </div>
+            </button>
           ))}
         </div>
       </section>

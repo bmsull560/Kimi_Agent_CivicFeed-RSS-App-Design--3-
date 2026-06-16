@@ -30,7 +30,6 @@ const categoryIcons: Record<string, React.ReactNode> = {
   "Veterans Affairs, Healthcare, & Benefits": <HeartPulse size={18} />,
 };
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
 const byCategory = feedStats.byCategory as Record<string, number>;
 
 interface SidebarProps { isOpen: boolean; onClose: () => void; }
@@ -49,7 +48,7 @@ export default function Sidebar({ isOpen, onClose }: SidebarProps) {
   return (
     <>
       {isOpen && <div className="fixed inset-0 bg-black/30 z-40 lg:hidden" onClick={onClose} aria-hidden="true" />}
-      <aside className={`fixed lg:sticky top-0 lg:top-[97px] left-0 z-40 w-64 h-[calc(100vh-97px)] bg-white border-r border-slate-200 transform transition-transform lg:transform-none ${isOpen ? "translate-x-0" : "-translate-x-full"}`} role="navigation" aria-label="Feed categories">
+      <aside className={`fixed lg:sticky top-[97px] left-0 z-40 w-64 h-[calc(100vh-97px)] bg-white border-r border-slate-200 transform transition-transform lg:transform-none ${isOpen ? "translate-x-0" : "-translate-x-full"}`} role="navigation" aria-label="Feed categories">
         <nav className="flex flex-col h-full" aria-label="Categories">
           <div className="px-3 py-2">
             <button onClick={handleAllFeeds} className={`w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-colors ${isAllFeeds ? "bg-blue-600 text-white" : "text-slate-700 hover:bg-slate-100"}`} type="button">

@@ -83,17 +83,19 @@ export default function FeedDirectory() {
       ) : (
         <div className="card divide-y divide-slate-100">
           {filteredFeeds.map(feed => (
-            <div key={feed.id} className="flex items-center gap-3 px-4 py-3 hover:bg-slate-50 transition-colors cursor-pointer" onClick={() => navigate(`/feed/${feed.id}`)} role="button" tabIndex={0} onKeyDown={e => e.key === "Enter" && navigate(`/feed/${feed.id}`)}>
-              <div className={`w-2 h-2 rounded-full flex-shrink-0 ${statusDot(feed.status)}`} title={feed.status} />
-              <div className="min-w-0 flex-1">
-                <h3 className="text-sm font-medium text-slate-800 truncate">{feed.shortName}</h3>
-                <div className="flex items-center gap-2 mt-0.5">
-                  <span className="text-[0.6875rem] text-slate-500">{feed.agency}</span>
-                  <span className="badge bg-slate-100 text-slate-600">{feed.category}</span>
+            <div key={feed.id} className="flex items-center gap-3 px-4 py-3 hover:bg-slate-50 transition-colors">
+              <button onClick={() => navigate(`/feed/${feed.id}`)} className="min-w-0 flex flex-1 items-center gap-3 text-left" type="button">
+                <div className={`w-2 h-2 rounded-full flex-shrink-0 ${statusDot(feed.status)}`} title={feed.status} />
+                <div className="min-w-0 flex-1">
+                  <h3 className="text-sm font-medium text-slate-800 truncate">{feed.shortName}</h3>
+                  <div className="flex items-center gap-2 mt-0.5">
+                    <span className="text-[0.6875rem] text-slate-500">{feed.agency}</span>
+                    <span className="badge bg-slate-100 text-slate-600">{feed.category}</span>
+                  </div>
                 </div>
-              </div>
+              </button>
               <div className="flex items-center gap-1 flex-shrink-0">
-                {feed.website && <a href={feed.website} target="_blank" rel="noopener noreferrer" onClick={e => e.stopPropagation()} className="p-1.5 rounded-md hover:bg-slate-100 text-slate-400 hover:text-slate-600" title="Visit website"><ExternalLink size={14} /></a>}
+                {feed.website && <a href={feed.website} target="_blank" rel="noopener noreferrer" className="p-1.5 rounded-md hover:bg-slate-100 text-slate-400 hover:text-slate-600" title="Visit website"><ExternalLink size={14} /></a>}
                 <span className="p-1.5 text-slate-300"><Rss size={14} /></span>
               </div>
             </div>
