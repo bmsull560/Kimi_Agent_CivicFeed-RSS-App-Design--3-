@@ -1,12 +1,26 @@
 import path from "path"
 import react from "@vitejs/plugin-react"
 import { defineConfig } from "vite"
-import { inspectAttr } from 'plugin-inspect-react-code'
 
 // https://vite.dev/config/
 export default defineConfig({
   base: './',
-  plugins: [inspectAttr(), react()],
+  plugins: [react()],
+  build: {
+    rollupOptions: {
+      output: {
+        manualChunks(id) {
+          const normalized = id.replace(/\\/g, "/");
+          if (normalized.endsWith("/src/data/feeds.ts")) return "feed-catalog";
+          if (normalized.includes("/node_modules/react") || normalized.includes("/node_modules/scheduler")) return "react-vendor";
+          if (normalized.includes("/node_modules/react-router")) return "router-vendor";
+          if (normalized.includes("/node_modules/@radix-ui/")) return "radix-vendor";
+          if (normalized.includes("/node_modules/lucide-react/")) return "icons-vendor";
+          if (normalized.includes("/node_modules/")) return "vendor";
+        },
+      },
+    },
+  },
   server: {
     port: 3000,
     proxy: {

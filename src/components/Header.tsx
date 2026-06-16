@@ -16,7 +16,8 @@ export default function Header({ onMenuToggle, sidebarOpen }: HeaderProps) {
   const dropdownRef = useRef<HTMLDivElement>(null);
   const navigate = useNavigate();
 
-  const results = useMemo(() => query.length >= 2 ? searchFeeds(query).slice(0, 8) : [], [query]);
+  const results = useMemo<Feed[]>(() => (query.length >= 2 ? searchFeeds(query).slice(0, 8) : []), [query]);
+  const isDropdownVisible = showDropdown && query.length >= 2;
 
   useEffect(() => {
     function handleClickOutside(e: MouseEvent) {
@@ -73,8 +74,8 @@ export default function Header({ onMenuToggle, sidebarOpen }: HeaderProps) {
           <input ref={inputRef} type="text" value={query} onChange={e => { const value = e.target.value; setQuery(value); setShowDropdown(value.length >= 2); }} onFocus={() => query.length >= 2 && setShowDropdown(true)}
             onKeyDown={e => { if (e.key === "Enter") handleSearchSubmit(); }}
             placeholder="Search feeds... (press / to focus)" className="input w-full pl-9 pr-4 py-2 text-sm"
-            aria-label="Search feeds" role="combobox" aria-expanded={showDropdown} aria-autocomplete="list" />
-          {showDropdown && results.length > 0 && (
+            aria-label="Search feeds" role="combobox" aria-expanded={isDropdownVisible} aria-autocomplete="list" />
+          {isDropdownVisible && results.length > 0 && (
             <div className="absolute top-full left-0 right-0 mt-1 bg-white border border-slate-200 rounded-lg shadow-lg z-50 overflow-hidden" role="listbox">
               {results.map(feed => (
                 <button key={feed.id} onClick={() => handleSelect(feed)} className="w-full text-left px-4 py-2.5 hover:bg-slate-50 flex items-center gap-3 transition-colors" role="option" type="button">
@@ -96,7 +97,7 @@ export default function Header({ onMenuToggle, sidebarOpen }: HeaderProps) {
               )}
             </div>
           )}
-          {showDropdown && query.length >= 2 && results.length === 0 && (
+          {isDropdownVisible && results.length === 0 && (
             <div className="absolute top-full left-0 right-0 mt-1 bg-white border border-slate-200 rounded-lg shadow-lg z-50 px-4 py-3 text-sm text-slate-500">No feeds found for &ldquo;{query}&rdquo;</div>
           )}
         </div>

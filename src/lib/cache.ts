@@ -10,9 +10,7 @@ function loadCache(): CacheEntry[] {
     if (!raw) return [];
     const parsed = JSON.parse(raw) as CacheEntry[];
     return Array.isArray(parsed) ? parsed : [];
-  } catch {
-    return [];
-  }
+  } catch { return []; }
 }
 
 function saveCache(entries: CacheEntry[]): void {
@@ -33,11 +31,15 @@ function saveCache(entries: CacheEntry[]): void {
   }
 }
 
-export function getCachedFeed(feedId: string): CacheEntry | null {
+export function isCacheFresh(entry: CacheEntry): boolean {
+  return Date.now() - entry.fetchedAt <= CACHE_TTL_MS;
+}
+
+export function getCachedFeed(feedId: string, options: { allowStale?: boolean } = {}): CacheEntry | null {
   const cache = loadCache();
   const entry = cache.find(e => e.feedId === feedId);
   if (!entry) return null;
-  if (Date.now() - entry.fetchedAt > CACHE_TTL_MS) return null;
+  if (!options.allowStale && !isCacheFresh(entry)) return null;
   entry.accessedAt = Date.now();
   saveCache(cache);
   return entry;

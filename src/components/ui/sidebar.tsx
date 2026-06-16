@@ -1,4 +1,3 @@
-/* eslint-disable react-refresh/only-export-components */
 "use client"
 
 import * as React from "react"
@@ -603,17 +602,22 @@ function SidebarMenuBadge({
 function SidebarMenuSkeleton({
   className,
   showIcon = false,
+  style,
   ...props
 }: React.ComponentProps<"div"> & {
   showIcon?: boolean
 }) {
-  const width = "75%"
-
   return (
     <div
       data-slot="sidebar-menu-skeleton"
       data-sidebar="menu-skeleton"
       className={cn("flex h-8 items-center gap-2 rounded-md px-2", className)}
+      style={
+        {
+          "--skeleton-width": "68%",
+          ...style,
+        } as React.CSSProperties
+      }
       {...props}
     >
       {showIcon && (
@@ -625,11 +629,6 @@ function SidebarMenuSkeleton({
       <Skeleton
         className="h-4 max-w-(--skeleton-width) flex-1"
         data-sidebar="menu-skeleton-text"
-        style={
-          {
-            "--skeleton-width": width,
-          } as React.CSSProperties
-        }
       />
     </div>
   )
