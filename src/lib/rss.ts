@@ -7,6 +7,29 @@ const PROXIES = [
   (url: string) => `https://corsproxy.io/?${encodeURIComponent(url)}`,
 ];
 
+const API_BASE = import.meta.env.VITE_API_URL || "";
+
+export async function fetchFeed(url: string, feedId: string, feedName: string): Promise<FetchResult> {
+  // Try backend API first
+  try {
+    const res = await fetch(`${API_BASE}/api/feeds/${feedId}/articles`, { signal: AbortSignal.timeout(20000) });
+    if (res.ok) {
+      const data = await res.json();
+      if (data.entries && data.entries.length > 0) {
+        return { entries: data.entries, error: null };
+      }
+      if (data.error) {
+        console.warn(`[Backend] Feed ${feedId} error:`, data.error);
+      }
+    }
+  } catch (e) {
+    console.warn(`[Backend] unreachable, falling back to direct fetch:`, e);
+  }
+
+  // Fallback: direct fetch with CORS proxies
+  return fetchFeedDirect(url, feedId, feedName);
+}
+
 function generateEntryId(link: string, title: string, pubDate: string): string {
   const str = `${link}::${title}::${pubDate}`;
   let hash = 0;
@@ -198,7 +221,7 @@ function fetchWithTimeout(url: string, timeoutMs: number, init?: RequestInit): P
   });
 }
 
-export async function fetchFeed(url: string, feedId: string, feedName: string): Promise<FetchResult> {
+async function fetchFeedDirect(url: string, feedId: string, feedName: string): Promise<FetchResult> {
   const errors: string[] = [];
   try {
     const res = await fetchWithTimeout(url, 12000, {

@@ -27,6 +27,9 @@ export interface RssEntry {
   feedId: string;
   feedName: string;
   fetchedAt: number;
+  aiSummary?: string;
+  aiSummarySource?: "ollama" | "openai" | "extractive";
+  aiTags?: string[];
 }
 
 export interface CacheEntry {
