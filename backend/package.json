@@ -7,7 +7,10 @@
     "dev": "tsx watch src/server.ts",
     "build": "tsc",
     "start": "node dist/server.js",
-    "seed": "tsx src/db.ts --seed"
+    "seed": "tsx src/db.ts --seed",
+    "validate:feeds": "tsx src/validate-feeds.ts",
+    "validate:feeds:strict": "tsx src/validate-feeds.ts --strict",
+    "ingest": "tsx src/ingest.ts"
   },
   "dependencies": {
     "better-sqlite3": "^12.0.0",

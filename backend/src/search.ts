@@ -63,12 +63,14 @@ export function searchArticles(query: string, limit: number = 20): SearchResult[
   const summaryStmt = db.prepare("SELECT summary FROM article_summaries WHERE entry_id = ?");
   const tagStmt = db.prepare("SELECT tag FROM article_tags WHERE entry_id = ?");
 
-  return ftsRows.map((ftsRow) => {
+  const results: SearchResult[] = [];
+
+  for (const ftsRow of ftsRows) {
     const r = articleMap.get(ftsRow.entry_id);
-    if (!r) return null;
+    if (!r) continue;
     const sumRow = summaryStmt.get(r.entry_id) as any;
     const tagRows = tagStmt.all(r.entry_id) as any[];
-    return {
+    results.push({
       entryId: r.entry_id,
       feedId: r.feed_id,
       title: r.title,
@@ -80,8 +82,10 @@ export function searchArticles(query: string, limit: number = 20): SearchResult[
       rank: ftsRow.rank,
       aiSummary: sumRow?.summary,
       aiTags: tagRows.map((t) => t.tag),
-    };
-  }).filter((x): x is SearchResult => x !== null);
+    });
+  }
+
+  return results;
 }
 
 export function getRecentArticles(limit: number = 50): SearchResult[] {
