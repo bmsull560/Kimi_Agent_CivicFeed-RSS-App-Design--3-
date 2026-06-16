@@ -129,31 +129,50 @@ function initSchema() {
 
 function seedFeeds() {
   const insert = db.prepare(`
-    INSERT OR IGNORE INTO feeds
+    INSERT INTO feeds
     (id, name, short_name, agency, description, rss_url, website, department, category, sub_category, content_type, update_frequency, status, tags)
     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    ON CONFLICT(id) DO UPDATE SET
+      name = excluded.name,
+      short_name = excluded.short_name,
+      agency = excluded.agency,
+      description = excluded.description,
+      rss_url = excluded.rss_url,
+      website = excluded.website,
+      department = excluded.department,
+      category = excluded.category,
+      sub_category = excluded.sub_category,
+      content_type = excluded.content_type,
+      update_frequency = excluded.update_frequency,
+      status = excluded.status,
+      tags = excluded.tags
   `);
 
-  for (const feed of feeds) {
-    insert.run(
-      feed.id,
-      feed.name,
-      feed.shortName,
-      feed.agency,
-      feed.description,
-      feed.rssUrl,
-      feed.website,
-      feed.department,
-      feed.category,
-      feed.subCategory,
-      feed.contentType,
-      feed.updateFrequency,
-      feed.status,
-      JSON.stringify(feed.tags)
-    );
-  }
+  db.transaction(() => {
+    for (const feed of feeds) {
+      insert.run(
+        feed.id,
+        feed.name,
+        feed.shortName,
+        feed.agency,
+        feed.description,
+        feed.rssUrl,
+        feed.website,
+        feed.department,
+        feed.category,
+        feed.subCategory,
+        feed.contentType,
+        feed.updateFrequency,
+        feed.status,
+        JSON.stringify(feed.tags)
+      );
+    }
 
-  console.log(`Seeded ${feeds.length} feeds.`);
+    const placeholders = feeds.map(() => "?").join(", ");
+    db.prepare(`DELETE FROM feeds WHERE id NOT IN (${placeholders})`).run(...feeds.map((feed) => feed.id));
+  })();
+
+  console.log(`Synced ${feeds.length} feeds.`);
 }
 
 initSchema();

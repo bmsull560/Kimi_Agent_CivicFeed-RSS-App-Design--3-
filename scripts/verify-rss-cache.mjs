@@ -14,7 +14,9 @@ function fail(message) {
 
 function loadTsModule(relativePath) {
   const filename = path.join(root, relativePath);
-  const source = fs.readFileSync(filename, "utf8");
+  const source = fs
+    .readFileSync(filename, "utf8")
+    .replaceAll("import.meta.env?.VITE_API_URL", '""');
   const compiled = ts.transpileModule(source, {
     compilerOptions: {
       esModuleInterop: true,

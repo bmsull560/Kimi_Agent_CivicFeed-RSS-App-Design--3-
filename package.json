@@ -13,7 +13,7 @@
     "validate:live-feeds": "node scripts/validate-live-feeds.mjs",
     "apply:live-feed-statuses": "node scripts/apply-live-feed-statuses.mjs",
     "sync:working-feeds": "node scripts/sync-working-feeds.mjs",
-    "verify:feeds": "node scripts/verify-feeds.mjs",
+    "verify:feeds": "node scripts/verify-feeds.mjs && node scripts/verify-backend-catalog-sync.mjs",
     "verify:rss-cache": "node scripts/verify-rss-cache.mjs",
     "verify:routes": "node scripts/verify-route-render.mjs",
     "verify:browser": "playwright test --config playwright.config.ts",

@@ -7,23 +7,38 @@ const PROXIES = [
   (url: string) => `https://corsproxy.io/?${encodeURIComponent(url)}`,
 ];
 
-const API_BASE = import.meta.env.VITE_API_URL || "";
+const API_BASE = import.meta.env?.VITE_API_URL || "";
+
+function getApiBaseCandidates(): string[] {
+  const candidates = new Set<string>();
+  candidates.add(API_BASE);
+
+  if (typeof window !== "undefined" && ["localhost", "127.0.0.1"].includes(window.location.hostname)) {
+    candidates.add("http://localhost:4000");
+  }
+
+  return [...candidates];
+}
 
 export async function fetchFeed(url: string, feedId: string, feedName: string): Promise<FetchResult> {
   // Try backend API first
-  try {
-    const res = await fetch(`${API_BASE}/api/feeds/${feedId}/articles`, { signal: AbortSignal.timeout(20000) });
-    if (res.ok) {
-      const data = await res.json();
-      if (data.entries && data.entries.length > 0) {
-        return { entries: data.entries, error: null };
+  for (const apiBase of getApiBaseCandidates()) {
+    try {
+      const res = await fetch(`${apiBase}/api/feeds/${feedId}/articles`, { signal: AbortSignal.timeout(20000) });
+      if (res.ok) {
+        const data = await res.json();
+        if (data.entries && data.entries.length > 0) {
+          return { entries: data.entries, error: null };
+        }
+        if (data.error) {
+          console.warn(`[Backend] Feed ${feedId} error:`, data.error);
+        }
+      } else if (res.status !== 404) {
+        console.warn(`[Backend] Feed ${feedId} request failed with HTTP ${res.status}`);
       }
-      if (data.error) {
-        console.warn(`[Backend] Feed ${feedId} error:`, data.error);
-      }
+    } catch (e) {
+      console.warn(`[Backend] ${apiBase || "same-origin"} unreachable, trying next source:`, e);
     }
-  } catch (e) {
-    console.warn(`[Backend] unreachable, falling back to direct fetch:`, e);
   }
 
   // Fallback: direct fetch with CORS proxies
