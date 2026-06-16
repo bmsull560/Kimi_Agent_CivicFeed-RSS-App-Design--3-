@@ -32,3 +32,22 @@ npm run build
 ```
 
 Static output is written to `dist/`.
+
+## Docker
+
+Run the full stack (frontend + backend API + seeded SQLite database) with Docker Compose:
+
+```bash
+docker compose up --build
+```
+
+- Frontend: http://localhost:8080
+- API health: http://localhost:8080/api/health
+
+The backend seeds its database on first run and persists it in the `civicfeed-data` volume. To stop and remove the containers:
+
+```bash
+docker compose down
+```
+
+The frontend image builds the Vite SPA and serves it via nginx, which also proxies `/api/` requests to the backend service.

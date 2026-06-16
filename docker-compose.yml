@@ -1,0 +1,39 @@
+services:
+  backend:
+    build:
+      context: ./backend
+    image: civicfeed-backend
+    environment:
+      NODE_ENV: production
+      PORT: "4000"
+      CIVICFEED_DB_PATH: /app/data/civicfeed.db
+    volumes:
+      - civicfeed-data:/app/data
+    expose:
+      - "4000"
+    restart: unless-stopped
+    healthcheck:
+      test:
+        - CMD
+        - node
+        - -e
+        - "require('http').get('http://localhost:4000/api/health',r=>process.exit(r.statusCode===200?0:1)).on('error',()=>process.exit(1))"
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
+
+  frontend:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: civicfeed-frontend
+    ports:
+      - "8080:80"
+    depends_on:
+      backend:
+        condition: service_healthy
+    restart: unless-stopped
+
+volumes:
+  civicfeed-data:
