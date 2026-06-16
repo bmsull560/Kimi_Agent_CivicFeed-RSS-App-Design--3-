@@ -2,7 +2,7 @@ import { useNavigate, useLocation } from "react-router-dom";
 import {
   Rss, TrendingUp, Globe, Shield, Heart, Leaf, Landmark, Scale, Briefcase, Store,
   Train, AlertTriangle, Palette, Eye, FileText, Star, Newspaper, BookOpen, Sprout,
-  Cpu, Home, HeartPulse,
+  Cpu, Home, HeartPulse, Calendar,
 } from "lucide-react";
 import { feedStats, categoryList, feeds } from "../data/feeds";
 
@@ -39,9 +39,11 @@ export default function Sidebar({ isOpen, onClose }: SidebarProps) {
   const location = useLocation();
   const currentCategory = new URLSearchParams(location.search).get("category") || "";
   const isAllFeeds = location.pathname === "/feeds" && !currentCategory;
+  const isRecap = location.pathname === "/recap";
 
   const handleCategory = (cat: string) => { navigate(`/feeds?category=${encodeURIComponent(cat)}`); onClose(); };
   const handleAllFeeds = () => { navigate("/feeds"); onClose(); };
+  const handleRecap = () => { navigate("/recap"); onClose(); };
   const currentPriority = new URLSearchParams(location.search).get("priority") || "";
   const handlePriority = (tier: number) => { navigate(`/feeds?priority=${tier}`); onClose(); };
 
@@ -50,10 +52,13 @@ export default function Sidebar({ isOpen, onClose }: SidebarProps) {
       {isOpen && <div className="fixed inset-0 bg-black/30 z-40 lg:hidden" onClick={onClose} aria-hidden="true" />}
       <aside className={`fixed lg:sticky top-[97px] left-0 z-40 w-64 h-[calc(100vh-97px)] bg-white border-r border-slate-200 transform transition-transform lg:transform-none ${isOpen ? "translate-x-0" : "-translate-x-full"}`} role="navigation" aria-label="Feed categories">
         <nav className="flex flex-col h-full" aria-label="Categories">
-          <div className="px-3 py-2">
+          <div className="px-3 py-2 space-y-0.5">
             <button onClick={handleAllFeeds} className={`w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-colors ${isAllFeeds ? "bg-blue-600 text-white" : "text-slate-700 hover:bg-slate-100"}`} type="button">
               <Rss size={18} /> All Feeds
               <span className={`ml-auto text-[0.6875rem] ${isAllFeeds ? "text-white/70" : "text-slate-400"}`}>{feedStats.total}</span>
+            </button>
+            <button onClick={handleRecap} className={`w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-colors ${isRecap ? "bg-blue-600 text-white" : "text-slate-700 hover:bg-slate-100"}`} type="button">
+              <Calendar size={18} /> Weekly Recap
             </button>
           </div>
           <div className="px-4 pt-2 pb-1">
