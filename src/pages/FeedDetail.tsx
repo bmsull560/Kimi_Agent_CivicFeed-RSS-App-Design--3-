@@ -1,10 +1,11 @@
 import { useParams, useNavigate } from "react-router-dom";
 import { ArrowLeft, RefreshCw, Copy, Rss, ExternalLink } from "lucide-react";
-import { getFeedById } from "../data/feeds";
+import { useUserFeeds } from "../hooks/useUserFeeds";
 import { useRssFeed } from "../hooks/useRssFeed";
 import EntryCard from "../components/EntryCard";
 import EmptyState from "../components/EmptyState";
 import LoadingState from "../components/LoadingState";
+import FeedStatusSection from "../components/FeedStatusSection";
 
 function statusDot(status: string): string {
   switch (status) { case "working": return "bg-green-500"; case "blocked": return "bg-red-500"; default: return "bg-slate-300"; }
@@ -16,7 +17,8 @@ function statusLabel(status: string): string {
 export default function FeedDetail() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
-  const feed = id ? getFeedById(id) : undefined;
+  const { allFeeds } = useUserFeeds();
+  const feed = id ? allFeeds.find(f => f.id === id) : undefined;
   const { status, entries, error, refresh } = useRssFeed(feed?.rssUrl || "", feed?.id || "", feed?.shortName || "");
 
   const handleCopyUrl = async () => {
@@ -53,6 +55,8 @@ export default function FeedDetail() {
         {feed.website && <a href={feed.website} target="_blank" rel="noopener noreferrer" className="btn-secondary"><ExternalLink size={16} /> Website</a>}
         <a href={feed.rssUrl} target="_blank" rel="noopener noreferrer" className="btn-secondary"><Rss size={16} /> Raw Feed</a>
       </div>
+
+      <FeedStatusSection key={feed.id} feedId={feed.id} />
 
       {status === "loading" && entries.length === 0 ? <LoadingState count={5} type="list-item" /> :
        status === "error" && entries.length === 0 ? (

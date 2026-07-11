@@ -1,4 +1,7 @@
 import { XMLParser } from "fast-xml-parser";
+import { guardedFetch } from "./url-security.js";
+import { db } from "./db.js";
+import { logger } from "./logger.js";
 
 export interface RssEntry {
   id: string;
@@ -16,6 +19,48 @@ export interface RssEntry {
 export interface FetchResult {
   entries: RssEntry[];
   error: string | null;
+}
+
+export interface FeedFetchStatus {
+  feedId: string;
+  lastSuccessAt: number | null;
+  lastErrorAt: number | null;
+  lastErrorMessage: string | null;
+  attemptCount: number;
+  successCount: number;
+  failureCount: number;
+  nextFetchAt: number | null;
+}
+
+const SUCCESS_INTERVAL_MS = 15 * 60 * 1000;
+const FAILURE_INTERVAL_MS = 5 * 60 * 1000;
+
+export function recordFeedSuccess(feedId: string, now = Date.now()) {
+  const stmt = db.prepare(`
+    INSERT INTO feed_fetch_status (feed_id, last_success_at, attempt_count, success_count, next_fetch_at)
+    VALUES (?, ?, 1, 1, ?)
+    ON CONFLICT(feed_id) DO UPDATE SET
+      last_success_at = excluded.last_success_at,
+      attempt_count = attempt_count + 1,
+      success_count = success_count + 1,
+      next_fetch_at = excluded.next_fetch_at,
+      last_error_message = NULL
+  `);
+  stmt.run(feedId, now, now + SUCCESS_INTERVAL_MS);
+}
+
+export function recordFeedFailure(feedId: string, errorMessage: string, now = Date.now()) {
+  const stmt = db.prepare(`
+    INSERT INTO feed_fetch_status (feed_id, last_error_at, last_error_message, attempt_count, failure_count, next_fetch_at)
+    VALUES (?, ?, ?, 1, 1, ?)
+    ON CONFLICT(feed_id) DO UPDATE SET
+      last_error_at = excluded.last_error_at,
+      last_error_message = excluded.last_error_message,
+      attempt_count = attempt_count + 1,
+      failure_count = failure_count + 1,
+      next_fetch_at = excluded.next_fetch_at
+  `);
+  stmt.run(feedId, now, errorMessage, now + FAILURE_INTERVAL_MS);
 }
 
 function generateEntryId(link: string, title: string, pubDate: string): string {
@@ -198,28 +243,22 @@ function validateFeedClientSide(entries: RssEntry[], feedId: string) {
 }
 
 export async function fetchFeed(url: string, feedId: string, feedName: string): Promise<FetchResult> {
-  try {
-    const controller = new AbortController();
-    const timer = setTimeout(() => controller.abort(), 15000);
-    const res = await fetch(url, { signal: controller.signal });
-    clearTimeout(timer);
-
-    if (!res.ok) {
-      return { entries: [], error: `HTTP ${res.status}` };
-    }
-
-    const xml = await res.text();
-    const entries = parseRssXml(xml, feedId, feedName);
-    if (entries.length === 0) {
-      return { entries: [], error: "No entries parsed" };
-    }
-
-    validateFeedClientSide(entries, feedId);
-    return { entries, error: null };
-  } catch (e) {
-    return {
-      entries: [],
-      error: e instanceof Error ? e.message : String(e),
-    };
+  const fetchResult = await guardedFetch(url);
+  if (!fetchResult.ok) {
+    const message = fetchResult.error || "Fetch failed";
+    logger.warn("feed fetch failed", { feedId, status: fetchResult.status, error: message });
+    recordFeedFailure(feedId, message);
+    return { entries: [], error: message };
   }
+
+  const entries = parseRssXml(fetchResult.text, feedId, feedName);
+  if (entries.length === 0) {
+    logger.warn("feed fetch returned no entries", { feedId });
+    recordFeedFailure(feedId, "No entries parsed");
+    return { entries: [], error: "No entries parsed" };
+  }
+
+  recordFeedSuccess(feedId);
+  validateFeedClientSide(entries, feedId);
+  return { entries, error: null };
 }

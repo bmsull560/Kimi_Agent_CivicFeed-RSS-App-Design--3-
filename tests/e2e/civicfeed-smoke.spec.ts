@@ -83,6 +83,7 @@ test("cached entries render immediately while a stale refresh is attempted", asy
     ]));
   }, { key: cacheKey });
   await page.route("https://www.trade.gov/rss.xml", route => route.abort());
+  await page.route(/api\.allorigins\.win|api\.codetabs\.com|corsproxy\.io/, route => route.abort());
 
   await page.goto("/#/feed/feed-001");
   await expect(page.getByText("Cached ITA Entry")).toBeVisible();

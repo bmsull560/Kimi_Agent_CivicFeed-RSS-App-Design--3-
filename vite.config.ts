@@ -16,7 +16,6 @@ export default defineConfig({
           if (normalized.includes("/node_modules/react-router")) return "router-vendor";
           if (normalized.includes("/node_modules/@radix-ui/")) return "radix-vendor";
           if (normalized.includes("/node_modules/lucide-react/")) return "icons-vendor";
-          if (normalized.includes("/node_modules/")) return "vendor";
         },
       },
     },

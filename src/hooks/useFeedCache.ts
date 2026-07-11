@@ -8,6 +8,6 @@ export function useFeedCache() {
   const invalidate = useCallback((feedId: string): void => invalidateFeed(feedId), []);
   const clearAll = useCallback((): void => invalidateAll(), []);
   const stats = useCallback(() => getCacheStats(), []);
-  const allCached = useCallback(() => getAllCachedEntries(), []);
+  const allCached = useCallback((includeStale = false) => getAllCachedEntries(includeStale), []);
   return { getCached, setCached, invalidate, clearAll, stats, allCached };
 }

@@ -1,10 +1,11 @@
 import { useNavigate, useLocation } from "react-router-dom";
+import { useMemo } from "react";
 import {
   Rss, TrendingUp, Globe, Shield, Heart, Leaf, Landmark, Scale, Briefcase, Store,
   Train, AlertTriangle, Palette, Eye, FileText, Star, Newspaper, BookOpen, Sprout,
-  Cpu, Home, HeartPulse, Calendar,
+  Cpu, Home, HeartPulse, Calendar, Bookmark, Archive, Newspaper as News,
 } from "lucide-react";
-import { feedStats, categoryList, feeds } from "../data/feeds";
+import { useUserFeeds } from "../hooks/useUserFeeds";
 
 const categoryIcons: Record<string, React.ReactNode> = {
   "Finance & Economy": <TrendingUp size={18} />,
@@ -30,22 +31,38 @@ const categoryIcons: Record<string, React.ReactNode> = {
   "Veterans Affairs, Healthcare, & Benefits": <HeartPulse size={18} />,
 };
 
-const byCategory = feedStats.byCategory as Record<string, number>;
-
 interface SidebarProps { isOpen: boolean; onClose: () => void; }
 
 export default function Sidebar({ isOpen, onClose }: SidebarProps) {
   const navigate = useNavigate();
   const location = useLocation();
+  const { allFeeds, enabledFeeds } = useUserFeeds();
+
   const currentCategory = new URLSearchParams(location.search).get("category") || "";
   const isAllFeeds = location.pathname === "/feeds" && !currentCategory;
   const isRecap = location.pathname === "/recap";
+  const isReading = location.pathname === "/reading";
+  const isBookmarks = location.pathname === "/bookmarks";
+  const isArchive = location.pathname === "/archive";
 
   const handleCategory = (cat: string) => { navigate(`/feeds?category=${encodeURIComponent(cat)}`); onClose(); };
   const handleAllFeeds = () => { navigate("/feeds"); onClose(); };
   const handleRecap = () => { navigate("/recap"); onClose(); };
+  const handleReading = () => { navigate("/reading"); onClose(); };
+  const handleBookmarks = () => { navigate("/bookmarks"); onClose(); };
+  const handleArchive = () => { navigate("/archive"); onClose(); };
   const currentPriority = new URLSearchParams(location.search).get("priority") || "";
   const handlePriority = (tier: number) => { navigate(`/feeds?priority=${tier}`); onClose(); };
+
+  const byCategory = useMemo(() => {
+    const map: Record<string, number> = {};
+    for (const feed of enabledFeeds) {
+      map[feed.category] = (map[feed.category] || 0) + 1;
+    }
+    return map;
+  }, [enabledFeeds]);
+
+  const categoryList = useMemo(() => Object.keys(byCategory).sort(), [byCategory]);
 
   return (
     <>
@@ -53,16 +70,25 @@ export default function Sidebar({ isOpen, onClose }: SidebarProps) {
       <aside className={`fixed lg:sticky top-[97px] left-0 z-40 w-64 h-[calc(100vh-97px)] bg-white border-r border-slate-200 transform transition-transform lg:transform-none ${isOpen ? "translate-x-0" : "-translate-x-full"}`} role="navigation" aria-label="Feed categories">
         <nav className="flex flex-col h-full" aria-label="Categories">
           <div className="px-3 py-2 space-y-0.5">
+            <button onClick={handleReading} className={`w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-colors ${isReading ? "bg-blue-600 text-white" : "text-slate-700 hover:bg-slate-100"}`} type="button">
+              <News size={18} /> Reading Stream
+            </button>
+            <button onClick={handleBookmarks} className={`w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-colors ${isBookmarks ? "bg-blue-600 text-white" : "text-slate-700 hover:bg-slate-100"}`} type="button">
+              <Bookmark size={18} /> Bookmarks
+            </button>
+            <button onClick={handleArchive} className={`w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-colors ${isArchive ? "bg-blue-600 text-white" : "text-slate-700 hover:bg-slate-100"}`} type="button">
+              <Archive size={18} /> Archive
+            </button>
             <button onClick={handleAllFeeds} className={`w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-colors ${isAllFeeds ? "bg-blue-600 text-white" : "text-slate-700 hover:bg-slate-100"}`} type="button">
               <Rss size={18} /> All Feeds
-              <span className={`ml-auto text-[0.6875rem] ${isAllFeeds ? "text-white/70" : "text-slate-400"}`}>{feedStats.total}</span>
+              <span className={`ml-auto text-[0.6875rem] ${isAllFeeds ? "text-white" : "text-slate-500"}`}>{enabledFeeds.length}</span>
             </button>
             <button onClick={handleRecap} className={`w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-colors ${isRecap ? "bg-blue-600 text-white" : "text-slate-700 hover:bg-slate-100"}`} type="button">
               <Calendar size={18} /> Weekly Recap
             </button>
           </div>
           <div className="px-4 pt-2 pb-1">
-            <p className="text-[0.6875rem] font-semibold text-slate-400 uppercase tracking-wider">Categories</p>
+            <p className="text-[0.6875rem] font-semibold text-slate-500 uppercase tracking-wider">Categories</p>
           </div>
           <div className="flex-1 overflow-y-auto px-3 pb-4 space-y-0.5">
             {categoryList.map(cat => {
@@ -72,13 +98,13 @@ export default function Sidebar({ isOpen, onClose }: SidebarProps) {
                 <button key={cat} onClick={() => handleCategory(cat)} className={`w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm transition-colors ${isActive ? "bg-blue-600 text-white font-medium" : "text-slate-700 hover:bg-slate-100"}`} type="button">
                   <span className={isActive ? "text-white" : "text-slate-500"}>{categoryIcons[cat] || <Newspaper size={18} />}</span>
                   <span className="truncate">{cat}</span>
-                  <span className={`ml-auto text-[0.6875rem] flex-shrink-0 ${isActive ? "text-white/70" : "text-slate-400"}`}>{count}</span>
+                  <span className={`ml-auto text-[0.6875rem] flex-shrink-0 ${isActive ? "text-white" : "text-slate-500"}`}>{count}</span>
                 </button>
               );
             })}
           </div>
           <div className="px-4 pt-4 pb-1">
-            <p className="text-[0.6875rem] font-semibold text-slate-400 uppercase tracking-wider">Priority</p>
+            <p className="text-[0.6875rem] font-semibold text-slate-500 uppercase tracking-wider">Priority</p>
           </div>
           <div className="flex-1 overflow-y-auto px-3 pb-4 space-y-0.5">
             {[
@@ -90,12 +116,12 @@ export default function Sidebar({ isOpen, onClose }: SidebarProps) {
               { tier: 6, label: "Tier 6 — Oversight", icon: <Eye size={18} /> },
             ].map(({ tier, label, icon }) => {
               const isActive = currentPriority === String(tier);
-              const count = feeds.filter(f => f.priority === tier).length;
+              const count = allFeeds.filter(f => f.priority === tier).length;
               return (
                 <button key={tier} onClick={() => handlePriority(tier)} className={`w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm transition-colors ${isActive ? "bg-blue-600 text-white font-medium" : "text-slate-700 hover:bg-slate-100"}`} type="button">
                   <span className={isActive ? "text-white" : "text-slate-500"}>{icon}</span>
                   <span className="truncate">{label}</span>
-                  <span className={`ml-auto text-[0.6875rem] flex-shrink-0 ${isActive ? "text-white/70" : "text-slate-400"}`}>{count}</span>
+                  <span className={`ml-auto text-[0.6875rem] flex-shrink-0 ${isActive ? "text-white" : "text-slate-500"}`}>{count}</span>
                 </button>
               );
             })}

@@ -6,16 +6,63 @@ import { getCachedArticles, saveArticles } from "./cache.js";
 import { enrichArticle } from "./ai.js";
 import { searchArticles, getRecentArticles } from "./search.js";
 import { generateRecap } from "./recap.js";
+import { logger } from "./logger.js";
+import { startFeedRefreshScheduler } from "./scheduler.js";
+import { discoverFeeds } from "./discovery.js";
 
-const app = express();
+export const app = express();
 const PORT = process.env.PORT || 4000;
+const startTime = Date.now();
 
 app.use(cors());
 app.use(express.json());
 
+// Structured request logging
+app.use((req, res, next) => {
+  const start = Date.now();
+  res.on("finish", () => {
+    logger.info("request", {
+      method: req.method,
+      path: req.path,
+      statusCode: res.statusCode,
+      durationMs: Date.now() - start,
+      userAgent: req.get("user-agent"),
+    });
+  });
+  next();
+});
+
 // Health check
 app.get("/api/health", (_req, res) => {
-  res.json({ status: "ok", timestamp: new Date().toISOString() });
+  let dbHealthy = false;
+  let feedsCount = 0;
+  try {
+    feedsCount = (db.prepare("SELECT COUNT(*) as c FROM feeds").get() as any).c;
+    dbHealthy = true;
+  } catch (error) {
+    logger.error("health check database query failed", error);
+  }
+
+  res.status(dbHealthy ? 200 : 503).json({
+    status: dbHealthy ? "ok" : "degraded",
+    timestamp: new Date().toISOString(),
+    uptimeSeconds: Math.floor((Date.now() - startTime) / 1000),
+    checks: {
+      database: dbHealthy,
+      feedsCount,
+    },
+  });
+});
+
+// Readiness check
+app.get("/api/ready", (_req, res) => {
+  try {
+    db.prepare("SELECT 1").get();
+    res.json({ ready: true, timestamp: new Date().toISOString() });
+  } catch (error) {
+    logger.error("readiness check failed", error);
+    res.status(503).json({ ready: false, timestamp: new Date().toISOString() });
+  }
 });
 
 // List all feeds
@@ -60,6 +107,38 @@ app.get("/api/feeds/:id", (req, res) => {
     status: row.status,
     tags: JSON.parse(row.tags),
   });
+});
+
+// Get feed fetch status
+app.get("/api/feeds/:id/status", (req, res) => {
+  const feedId = req.params.id;
+  const feed = db.prepare("SELECT id FROM feeds WHERE id = ?").get(feedId) as any;
+  if (!feed) return res.status(404).json({ error: "Feed not found" });
+
+  const row = db.prepare("SELECT * FROM feed_fetch_status WHERE feed_id = ?").get(feedId) as any;
+  const status = row
+    ? {
+        feedId: row.feed_id,
+        lastSuccessAt: row.last_success_at,
+        lastErrorAt: row.last_error_at,
+        lastErrorMessage: row.last_error_message,
+        attemptCount: row.attempt_count,
+        successCount: row.success_count,
+        failureCount: row.failure_count,
+        nextFetchAt: row.next_fetch_at,
+      }
+    : {
+        feedId,
+        lastSuccessAt: null,
+        lastErrorAt: null,
+        lastErrorMessage: null,
+        attemptCount: 0,
+        successCount: 0,
+        failureCount: 0,
+        nextFetchAt: null,
+      };
+
+  res.json(status);
 });
 
 // Get articles for a feed (with caching + AI enrichment)
@@ -144,6 +223,77 @@ app.get("/api/stats/cache", (_req, res) => {
   res.json({ totalArticles, cachedFeeds });
 });
 
-app.listen(PORT, () => {
-  console.log(`CivicFeed backend listening on http://localhost:${PORT}`);
+// Feed stats
+app.get("/api/stats/feeds", (_req, res) => {
+  const totalFeeds = (db.prepare("SELECT COUNT(*) as c FROM feeds").get() as any).c;
+  const workingFeeds = (db.prepare("SELECT COUNT(*) as c FROM feeds WHERE status = 'working'").get() as any).c;
+  const feedsWithStatus = (db.prepare("SELECT COUNT(*) as c FROM feed_fetch_status").get() as any).c;
+  const feedsWithRecentError = (db.prepare(`
+    SELECT COUNT(DISTINCT feed_id) as c FROM feed_fetch_status
+    WHERE last_error_at IS NOT NULL
+      AND (last_success_at IS NULL OR last_error_at > last_success_at)
+  `).get() as any).c;
+  const staleThreshold = Date.now() - 24 * 60 * 60 * 1000;
+  const staleFeeds = (db.prepare(`
+    SELECT COUNT(*) as c FROM feed_fetch_status
+    WHERE last_success_at IS NOT NULL AND last_success_at < ?
+  `).get(staleThreshold) as any).c;
+
+  res.json({
+    totalFeeds,
+    workingFeeds,
+    feedsWithStatus,
+    feedsWithRecentError,
+    staleFeeds,
+  });
 });
+
+// Feed discovery
+app.get("/api/discover", async (req, res) => {
+  const url = (req.query.url as string) || "";
+  const isValidHttpUrl = (value: string) => {
+    try {
+      const u = new URL(value);
+      return u.protocol === "http:" || u.protocol === "https:";
+    } catch {
+      return false;
+    }
+  };
+
+  if (!url || !isValidHttpUrl(url)) {
+    return res.status(400).json({ error: "A valid HTTP/HTTPS URL is required" });
+  }
+
+  try {
+    const feeds = await discoverFeeds(url);
+    res.json({ feeds });
+  } catch (error) {
+    logger.error("feed discovery failed", error);
+    res.status(502).json({ feeds: [], error: "Discovery failed" });
+  }
+});
+
+// Global error handler
+app.use((err: Error, _req: express.Request, res: express.Response, _next: express.NextFunction) => {
+  logger.error("unhandled request error", err);
+  res.status(500).json({ error: "Internal server error" });
+});
+
+if (import.meta.url === `file://${process.argv[1]}`) {
+  const refreshIntervalMs = Number(process.env.CIVICFEED_REFRESH_INTERVAL_MS) || 60_000;
+  const server = app.listen(PORT, () => {
+    logger.info("server started", { port: PORT, refreshIntervalMs });
+  });
+
+  const stopScheduler = startFeedRefreshScheduler(db, refreshIntervalMs);
+
+  const shutdown = () => {
+    stopScheduler();
+    server.close(() => {
+      logger.info("server stopped");
+      process.exit(0);
+    });
+  };
+  process.on("SIGTERM", shutdown);
+  process.on("SIGINT", shutdown);
+}

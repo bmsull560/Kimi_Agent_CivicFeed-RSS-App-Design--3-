@@ -4,13 +4,11 @@ import {
   Train, AlertTriangle, Palette, Eye, FileText, Star, Newspaper, BookOpen, Sprout,
   Cpu, Home, HeartPulse, RefreshCw, ArrowRight, Rss,
 } from "lucide-react";
-import { feedStats, categoryList, getFeedsByPriority } from "../data/feeds";
+import { useUserFeeds } from "../hooks/useUserFeeds";
 import { useFeedCache } from "../hooks/useFeedCache";
 import CategoryCard from "../components/CategoryCard";
 import EntryCard from "../components/EntryCard";
 import EmptyState from "../components/EmptyState";
-
-const byCategory = feedStats.byCategory as Record<string, number>;
 
 const categoryIcons: Record<string, React.ReactNode> = {
   "Oversight & Audits": <Eye size={20} />,
@@ -49,16 +47,26 @@ function formatRelativeTime(timestamp: number): string {
 
 export default function Dashboard() {
   const navigate = useNavigate();
+  const { allFeeds, enabledFeeds } = useUserFeeds();
   const { allCached, clearAll, stats } = useFeedCache();
-  const cachedData = allCached();
+  const cachedData = allCached(true);
   const cacheStats = stats();
 
   const handleRefreshAll = () => { clearAll(); window.location.reload(); };
 
   const recentEntries = cachedData
+    .filter(c => enabledFeeds.some(f => f.id === c.feedId))
     .flatMap(c => c.entries.slice(0, 3).map(e => ({ ...e, _feedId: c.feedId })))
     .sort((a, b) => new Date(b.pubDate).getTime() - new Date(a.pubDate).getTime())
     .slice(0, 10);
+
+  const byCategory: Record<string, number> = {};
+  for (const feed of enabledFeeds) {
+    byCategory[feed.category] = (byCategory[feed.category] || 0) + 1;
+  }
+  const categoryList = Object.keys(byCategory).sort();
+
+  const tierOneFeeds = enabledFeeds.filter(f => f.priority === 1).slice(0, 6);
 
   return (
     <div className="space-y-8">
@@ -66,7 +74,7 @@ export default function Dashboard() {
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
           <div>
             <h1 className="text-2xl font-bold text-slate-900">U.S. Government RSS Feeds</h1>
-            <p className="text-sm text-slate-500 mt-1">{feedStats.total} feeds across {Object.keys(feedStats.byCategory).length} categories from federal agencies</p>
+            <p className="text-sm text-slate-500 mt-1">{allFeeds.length} feeds across {categoryList.length} categories{enabledFeeds.length !== allFeeds.length && ` (${enabledFeeds.length} enabled)`}</p>
           </div>
           <div className="flex items-center gap-2">
             <button onClick={handleRefreshAll} className="btn-secondary" type="button" title="Clear cache and reload"><RefreshCw size={16} /> Refresh All</button>
@@ -74,8 +82,8 @@ export default function Dashboard() {
           </div>
         </div>
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mt-6">
-          <div className="bg-slate-50 rounded-lg p-3 text-center"><p className="text-2xl font-bold text-blue-600">{feedStats.total}</p><p className="text-[0.6875rem] text-slate-500 uppercase tracking-wide">Total Feeds</p></div>
-          <div className="bg-slate-50 rounded-lg p-3 text-center"><p className="text-2xl font-bold text-blue-600">{Object.keys(feedStats.byCategory).length}</p><p className="text-[0.6875rem] text-slate-500 uppercase tracking-wide">Categories</p></div>
+          <div className="bg-slate-50 rounded-lg p-3 text-center"><p className="text-2xl font-bold text-blue-600">{allFeeds.length}</p><p className="text-[0.6875rem] text-slate-500 uppercase tracking-wide">Total Feeds</p></div>
+          <div className="bg-slate-50 rounded-lg p-3 text-center"><p className="text-2xl font-bold text-blue-600">{categoryList.length}</p><p className="text-[0.6875rem] text-slate-500 uppercase tracking-wide">Categories</p></div>
           <div className="bg-slate-50 rounded-lg p-3 text-center"><p className="text-2xl font-bold text-blue-600">{cachedData.length}</p><p className="text-[0.6875rem] text-slate-500 uppercase tracking-wide">Cached</p></div>
           <div className="bg-slate-50 rounded-lg p-3 text-center"><p className="text-2xl font-bold text-blue-600">{cacheStats.oldestFetch ? formatRelativeTime(cacheStats.oldestFetch) : "—"}</p><p className="text-[0.6875rem] text-slate-500 uppercase tracking-wide">Last Update</p></div>
         </div>
@@ -93,7 +101,7 @@ export default function Dashboard() {
           </button>
         </div>
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-          {getFeedsByPriority(1).slice(0, 6).map(feed => (
+          {tierOneFeeds.map(feed => (
             <button key={feed.id} onClick={() => navigate(`/feed/${feed.id}`)} className="card card-hover cursor-pointer p-4 text-left" type="button">
               <div className="flex items-start justify-between">
                 <div>

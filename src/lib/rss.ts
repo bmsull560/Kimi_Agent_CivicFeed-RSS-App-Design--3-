@@ -1,5 +1,5 @@
 import { XMLParser } from "fast-xml-parser";
-import type { RssEntry, FetchResult } from "../types";
+import type { RssEntry, FetchResult, FeedFetchStatus, FeedStats, DiscoveredFeed } from "../types";
 
 const PROXIES = [
   (url: string) => `https://api.allorigins.win/raw?url=${encodeURIComponent(url)}`,
@@ -43,6 +43,56 @@ export async function fetchFeed(url: string, feedId: string, feedName: string): 
 
   // Fallback: direct fetch with CORS proxies
   return fetchFeedDirect(url, feedId, feedName);
+}
+
+export async function fetchFeedStatus(feedId: string): Promise<FeedFetchStatus | null> {
+  for (const apiBase of getApiBaseCandidates()) {
+    try {
+      const res = await fetch(`${apiBase}/api/feeds/${feedId}/status`, {
+        signal: AbortSignal.timeout(10000),
+      });
+      if (res.ok) {
+        return (await res.json()) as FeedFetchStatus;
+      }
+    } catch {
+      // Candidate unreachable; try the next one.
+    }
+  }
+  return null;
+}
+
+export async function fetchFeedStats(): Promise<FeedStats | null> {
+  for (const apiBase of getApiBaseCandidates()) {
+    try {
+      const res = await fetch(`${apiBase}/api/stats/feeds`, {
+        signal: AbortSignal.timeout(10000),
+      });
+      if (res.ok) {
+        return (await res.json()) as FeedStats;
+      }
+    } catch {
+      // Candidate unreachable; try the next one.
+    }
+  }
+  return null;
+}
+
+export async function discoverFeeds(inputUrl: string): Promise<DiscoveredFeed[]> {
+  for (const apiBase of getApiBaseCandidates()) {
+    try {
+      const res = await fetch(
+        `${apiBase}/api/discover?url=${encodeURIComponent(inputUrl)}`,
+        { signal: AbortSignal.timeout(15000) }
+      );
+      if (res.ok) {
+        const data = (await res.json()) as { feeds?: DiscoveredFeed[] };
+        return data.feeds || [];
+      }
+    } catch {
+      // Candidate unreachable; try the next one.
+    }
+  }
+  return [];
 }
 
 function generateEntryId(link: string, title: string, pubDate: string): string {

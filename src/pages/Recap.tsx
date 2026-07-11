@@ -39,18 +39,22 @@ export default function Recap() {
   const navigate = useNavigate();
   const [recap, setRecap] = useState<WeeklyRecap | null>(null);
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const [backendUnavailable, setBackendUnavailable] = useState(false);
 
   useEffect(() => {
     Promise.resolve().then(() => setLoading(true));
     fetch("/api/recap")
-      .then((r) => r.json())
+      .then((r) => {
+        if (!r.ok) throw new Error(`HTTP ${r.status}`);
+        return r.json();
+      })
       .then((data) => {
         setRecap(data);
+        setBackendUnavailable(false);
         setLoading(false);
       })
-      .catch((e) => {
-        setError(e instanceof Error ? e.message : String(e));
+      .catch(() => {
+        setBackendUnavailable(true);
         setLoading(false);
       });
   }, []);
@@ -95,7 +99,13 @@ export default function Recap() {
         </div>
       )}
 
-      {error && <div className="card p-6 text-red-600">{error}</div>}
+      {!loading && backendUnavailable && (
+        <EmptyState
+          message="Weekly Recap requires the backend"
+          subMessage="The backend API is not available, so the weekly recap cannot be generated. Start the backend or browse your cached feeds to keep reading."
+          action={{ label: "Browse Feeds", onClick: () => navigate("/feeds") }}
+        />
+      )}
 
       {!loading && recap && recap.totalArticles === 0 && (
         <EmptyState

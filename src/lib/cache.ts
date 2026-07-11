@@ -80,8 +80,8 @@ export function getCacheStats(): { totalCached: number; oldestFetch: number | nu
   return { totalCached: cache.length, oldestFetch: Math.min(...cache.map(e => e.fetchedAt)) };
 }
 
-export function getAllCachedEntries(): { feedId: string; feedName: string; entries: RssEntry[] }[] {
+export function getAllCachedEntries(includeStale = false): { feedId: string; feedName: string; entries: RssEntry[] }[] {
   return loadCache()
-    .filter(e => Date.now() - e.fetchedAt <= CACHE_TTL_MS)
+    .filter(e => includeStale || Date.now() - e.fetchedAt <= CACHE_TTL_MS)
     .map(e => ({ feedId: e.feedId, feedName: e.entries[0]?.feedName || e.feedId, entries: e.entries }));
 }
