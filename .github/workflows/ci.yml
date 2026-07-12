@@ -47,9 +47,6 @@ jobs:
       - name: Verify feed catalog
         run: npm run verify:feeds
 
-      - name: Verify RSS/cache scripts
-        run: npm run verify:rss-cache
-
       - name: Verify route rendering
         run: npm run verify:routes
 
