@@ -3,7 +3,7 @@ import path from "node:path";
 
 export default defineConfig({
   testDir: "./tests/e2e",
-  testIgnore: ["civicfeed-live.spec.ts"],
+  testMatch: "civicfeed-live.spec.ts",
   timeout: 60_000,
   expect: { timeout: 10_000 },
   fullyParallel: false,
@@ -15,20 +15,8 @@ export default defineConfig({
   },
   projects: [
     {
-      name: "chromium-desktop",
+      name: "chromium-live",
       use: { ...devices["Desktop Chrome"] },
-    },
-    {
-      name: "firefox-desktop",
-      use: { ...devices["Desktop Firefox"] },
-    },
-    {
-      name: "webkit-desktop",
-      use: { ...devices["Desktop Safari"] },
-    },
-    {
-      name: "mobile-chromium",
-      use: { ...devices["Pixel 5"] },
     },
   ],
 });

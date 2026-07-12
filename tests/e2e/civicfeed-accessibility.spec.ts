@@ -17,10 +17,65 @@ const pages: A11yPage[] = [
   { path: "/#/recap", name: "Recap" },
 ];
 
+function makeCatalog() {
+  return {
+    feeds: [
+      {
+        id: "feed-001",
+        name: "ITA News",
+        shortName: "ITA News",
+        agency: "International Trade Administration",
+        description: "Export Promotion",
+        rssUrl: "https://www.trade.gov/rss.xml",
+        website: "https://www.trade.gov",
+        department: "",
+        category: "Commerce & Trade",
+        subCategory: "export-promotion",
+        contentType: "Export Promotion",
+        updateFrequency: "",
+        status: "working",
+        tags: ["export-promotion"],
+      },
+    ],
+    categoryList: ["Commerce & Trade"],
+    feedStats: { total: 1, working: 1, categories: 1 },
+  };
+}
+
+async function mockBackendForAccessibility(page: import("@playwright/test").Page) {
+  await page.route("**/api/feeds", route =>
+    route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify(makeCatalog()) }),
+  );
+  await page.route("**/api/articles/recent*", route =>
+    route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify({ results: [] }) }),
+  );
+  await page.route("**/api/stats/feeds", route =>
+    route.fulfill({
+      status: 200,
+      contentType: "application/json",
+      body: JSON.stringify({ totalFeeds: 1, workingFeeds: 1, feedsWithStatus: 0, feedsWithRecentError: 0, staleFeeds: 0 }),
+    }),
+  );
+  await page.route("**/api/search*", route =>
+    route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify({ query: "", results: [], total: 0 }) }),
+  );
+  await page.route("**/api/recap", route =>
+    route.fulfill({
+      status: 200,
+      contentType: "application/json",
+      body: JSON.stringify({ startDate: new Date().toISOString(), endDate: new Date().toISOString(), totalArticles: 0, categories: [], topTags: [] }),
+    }),
+  );
+  await page.route("**/api/articles/by-ids", route =>
+    route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify({ results: [] }) }),
+  );
+}
+
 for (const { path, name } of pages) {
   test.describe(`${name} accessibility`, () => {
     test(`should not have automatically detectable a11y violations on ${name}`, async ({ page }) => {
       test.setTimeout(120_000);
+      await mockBackendForAccessibility(page);
       await page.goto(path);
       // Wait for the main content to render before scanning.
       await page.locator("main, [role=main], #root").first().waitFor({ state: "visible", timeout: 5000 });
