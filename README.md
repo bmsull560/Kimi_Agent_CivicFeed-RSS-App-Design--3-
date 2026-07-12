@@ -8,11 +8,11 @@ A single-page web application for discovering, organizing, and reading U.S. gove
 - **Feed Directory** — Searchable, filterable directory of 590+ verified government and public-interest RSS feeds across 18 categories
 - **Feed Curation** — Add, edit, enable/disable, and remove RSS/Atom feeds with URL validation, duplicate detection, and website-to-feed discovery
 - **OPML Import / Export** — Bring your own subscriptions in and back them up
-- **Unified Reading Stream** — Read latest entries from any feed with client-side caching, refresh status, and error recovery
-- **Frontend Search & Filtering** — Search cached articles by keyword and filter by source, category, or read state
+- **Unified Reading Stream** — Read latest entries from any feed with backend caching, refresh status, and error recovery
+- **Search** — Full-text search over cached articles via backend SQLite FTS5
 - **Reading State** — Bookmark, mark as read, and archive articles; state persists in the browser
 - **Responsive & Accessible** — Works on desktop and mobile; keyboard navigable, visible focus states, semantic HTML, and reduced-motion support
-- **Optional Backend API** — SQLite-backed article cache, FTS5 search, AI summaries, and recap generation when the backend is running
+- **Backend API** — SQLite-backed article cache, FTS5 search, AI summaries, feed health checks, and recap generation
 
 ## Architecture Overview
 
@@ -21,19 +21,18 @@ A single-page web application for discovering, organizing, and reading U.S. gove
 │   React SPA │──────▶│  Vite dev /  │──────▶│  Express API    │
 │  (src/)     │      │  nginx prod  │      │  (backend/src)  │
 └─────────────┘      └──────────────┘      └─────────────────┘
-       │                                            │
-       │                                            ▼
-       ▼                                    ┌─────────────────┐
-┌─────────────┐                             │  better-sqlite3 │
-│ localStorage│                             │  article cache  │
-│ feed cache  │                             └─────────────────┘
-└─────────────┘
+                                                   │
+                                                   ▼
+                                           ┌─────────────────┐
+                                           │  better-sqlite3 │
+                                           │  article cache  │
+                                           └─────────────────┘
 ```
 
 - **Frontend**: React 19 + TypeScript, Vite, Tailwind CSS v3, shadcn/ui, React Router HashRouter
 - **Backend**: Express + TypeScript + better-sqlite3
-- **Data**: Feed catalog lives in `src/data/feeds.ts` and is mirrored in `backend/src/feeds.ts`; verification scripts keep them in sync
-- **Caching**: Browser `localStorage` for frontend feed entries and user state; SQLite for backend article cache and search index
+- **Data**: Feed catalog lives in `backend/src/feeds.ts`; the frontend fetches it dynamically from `/api/feeds`
+- **Caching**: Backend SQLite for article cache, search index, and feed fetch status; browser `localStorage` only for user state (bookmarks, read/archive state, preferences)
 - **Deployment**: Docker Compose with nginx frontend and Node backend
 
 ## Technology Stack
@@ -72,19 +71,9 @@ Only needed if you plan to run the end-to-end test suite:
 npm run test:install
 ```
 
-### 3. Run the frontend
+### 3. Run the backend
 
-```bash
-npm run dev
-```
-
-The dev server runs on http://localhost:3000.
-
-The frontend works standalone for browsing feeds; it falls back to direct fetches and CORS proxies when the backend is not running.
-
-### 4. (Optional) Run the backend
-
-The backend enables server-side article search, weekly recap, and persistent server-side caching. When the backend is not running, search falls back to the local browser cache and the Weekly Recap page explains that the backend is required.
+The backend is required for feed fetching, article caching, search, weekly recap, and feed discovery.
 
 ```bash
 cd backend
@@ -92,7 +81,13 @@ npm run seed      # one-time: syncs feed catalog into SQLite
 npm run dev       # starts API on http://localhost:4000
 ```
 
-When the frontend dev server is running, Vite proxies `/api/*` requests to `http://localhost:4000`.
+### 4. Run the frontend
+
+```bash
+npm run dev
+```
+
+The dev server runs on http://localhost:3000 and proxies `/api/*` requests to `http://localhost:4000`.
 
 ### 5. Build for production
 
@@ -124,12 +119,11 @@ CivicFeed is designed as a local-first application with no authentication or clo
 
 | Data | Location | Lifetime | Notes |
 |------|----------|----------|-------|
-| Feed catalog (default sources) | `src/data/feeds.ts` / `backend/src/feeds.ts` | Shipped with the app | Public, curated list of civic RSS/Atom feeds. Kept in sync by verification scripts. |
+| Feed catalog (default sources) | `backend/src/feeds.ts` | Shipped with the app | Public, curated list of civic RSS/Atom feeds. The backend is the single source of truth. |
 | User-added feeds, categories, bookmarks, read/unread state, archived articles, display preferences | Browser `localStorage` | Per-browser, until cleared | Tied to the origin (`localhost:3000`, `localhost:8080`, or the deployed domain). No encryption at rest. |
-| Cached article entries (frontend) | Browser `localStorage` | Per-browser, until cleared | Fetched feed entries used for offline viewing and fast reloads. |
-| Article cache, search index, feed fetch status | Backend SQLite (`backend/data/civicfeed.db`) | Per-deployment | Stored on the server running the backend. No personal accounts; shared across all users of the same deployed instance. |
+| Article cache, search index, feed fetch status, feed health | Backend SQLite (`backend/data/civicfeed.db`) | Per-deployment | Stored on the server running the backend. No personal accounts; shared across all users of the same deployed instance. |
 
-No analytics, tracking, or third-party telemetry are included. External URLs open in a new tab with `rel="noopener noreferrer"`. Feed content is fetched from the publisher directly or through user-configured feeds; the application does not proxy content except for the optional backend fetch path in a self-hosted deployment.
+No analytics, tracking, or third-party telemetry are included. External URLs open in a new tab with `rel="noopener noreferrer"`. Feed content is fetched directly by the backend; no public CORS proxies are used.
 
 ## Development Commands
 
@@ -151,7 +145,7 @@ npm test             # run the Playwright end-to-end suite
 cd backend && npm test  # run backend unit tests
 npm run type-check   # run TypeScript type checking (frontend)
 cd backend && npm run type-check  # backend type checking
-npm run verify       # run the full verification pipeline: lint, feed checks, cache check, route render, build, dist check, and browser tests
+npm run verify       # run the full verification pipeline: lint, feed checks, acceptance audit, route render, build, dist check, and browser tests
 ```
 
 ## Security / Dependency Commands
@@ -165,11 +159,11 @@ cd backend && npm audit fix           # auto-fix backend vulnerabilities where p
 
 The CI workflow runs `npm audit --audit-level=low` for both the root and backend workspaces. As of the latest dependency refresh, both workspaces report **zero vulnerabilities** at `low` severity or higher. Re-run the audit commands above after any dependency change; if `npm audit fix` cannot resolve a finding, document it here with the advisory ID and justification for acceptance.
 
-The verification pipeline also includes feed-catalog checks:
+The verification pipeline includes feed-catalog checks:
 
 ```bash
-npm run verify:feeds      # validate frontend and backend feed catalogs are in sync
-npm run verify:rss-cache  # validate RSS/cache scripts
+npm run verify:feeds      # validate the backend feed catalog
+npm run audit:acceptance  # validate architectural invariants
 npm run verify:routes     # verify all routes render without errors
 npm run verify:dist       # verify production build artifacts
 npm run verify:browser    # run Playwright browser tests
@@ -186,16 +180,17 @@ npm run validate:feeds:strict # live validation that fails on any unreachable fe
 
 ## Feed Ingestion Behavior
 
-- The frontend tries the backend API first, then falls back to direct feed fetches and public CORS proxies.
-- Fetched entries are cached in browser `localStorage` for quick revisits.
-- Stale cache (older than 15 minutes) is shown immediately while a background refresh is attempted.
+- The frontend fetches articles exclusively through the backend `/api/feeds/:id/articles` endpoint. It does not perform client-side RSS fetching or XML parsing.
+- Fetched entries are cached in the backend SQLite database and returned immediately. The browser relies on standard HTTP caching headers rather than a separate localStorage cache.
 - The backend ingests feeds on demand when `/api/feeds/:id/articles` is requested and stores them in SQLite with FTS5 indexing.
+- Background AI enrichment (summaries, tags) runs asynchronously so article requests stay fast. The UI can poll or gracefully degrade while enrichment is pending.
 - Every backend fetch attempt is recorded in the `feed_fetch_status` table, including the last success and error timestamps, attempt/success/failure counts, the last error message, and the next scheduled fetch time.
   - `GET /api/feeds/:id/status` returns fetch diagnostics for a single feed.
+  - `GET /api/feeds/:id/health` returns the latest feed health check result.
   - `GET /api/stats/feeds` returns aggregate feed health counts (total, working, with status, with recent error, stale).
 - The backend also runs a lightweight scheduler that refreshes due feeds in the background every `CIVICFEED_REFRESH_INTERVAL_MS` milliseconds (default 60 seconds). It processes up to 50 due feeds per tick with a concurrency limit of 5, records fetch status, and caches articles for search. Set `CIVICFEED_REFRESH_INTERVAL_MS=0` to disable scheduled refreshes.
+- Backend RSS fetches include retry with exponential backoff, jitter, and a per-feed circuit breaker to handle transient upstream failures gracefully.
 - The Add Feed dialog supports feed discovery: enter a website URL and click **Discover** to query `/api/discover?url=...` for linked RSS/Atom feeds. The endpoint parses `<link rel="alternate">` tags, resolves relative URLs, and returns up to 10 candidate feeds.
-- User-added feeds, bookmarks, read/unread state, archived articles, and display preferences are persisted in `localStorage`.
 
 ## Database Migrations
 
@@ -206,6 +201,7 @@ The backend uses a numbered, transactional migration system (`backend/src/migrat
 - Migration 001 creates the core tables (`feeds`, `article_cache`, `article_summaries`, `article_tags`).
 - Migration 002 creates the self-contained FTS5 `article_search` virtual table, rebuilds it if an old contentless version is detected, and populates it from existing cached articles.
 - Migration 003 creates the `feed_fetch_status` table to record per-feed fetch outcomes, attempt/success/failure counts, last error messages, and the next scheduled fetch time.
+- Migration 004 creates the `feed_health` table for structured feed health checks.
 
 To inspect applied migrations:
 
@@ -222,7 +218,7 @@ sqlite3 data/civicfeed.db "SELECT id, name, applied_at FROM migrations ORDER BY 
 - Manual redirect handling validates every hop with the same SSRF rules and enforces a maximum redirect count.
 - Fetched responses are bounded by a size limit and a request timeout to prevent abuse or runaway transfers.
 - External URLs are opened with `rel="noopener noreferrer"`.
-- No authentication or user accounts are implemented; all data is per-browser `localStorage` or per-deployment SQLite.
+- No authentication or user accounts are implemented; all user state is per-browser `localStorage` and article data is per-deployment SQLite.
 
 ## Docker Deployment
 
@@ -236,6 +232,7 @@ docker compose up --build
 - API health: http://localhost:8080/api/health
 - API readiness: http://localhost:8080/api/ready
 - Feed status: http://localhost:8080/api/feeds/:id/status
+- Feed health: http://localhost:8080/api/feeds/:id/health
 - Feed stats: http://localhost:8080/api/stats/feeds
 - Feed discovery: http://localhost:8080/api/discover?url=...
 
@@ -253,7 +250,7 @@ The frontend image builds the Vite SPA and serves it via nginx, which also proxi
 
 A GitHub Actions workflow (`.github/workflows/ci.yml`) runs the full quality suite on every push and pull request:
 
-- Frontend lint, type-check, build, feed-catalog verification, RSS/cache verification, route rendering, dist verification, cross-browser Playwright tests, and automated accessibility scans.
+- Frontend lint, type-check, build, feed-catalog verification, acceptance audit, route rendering, dist verification, cross-browser Playwright tests, and automated accessibility scans.
 - Backend type-check, unit tests, and dependency audit.
 
 You can run the same gates locally:
@@ -263,7 +260,7 @@ npm run lint
 npm run type-check
 npm run build
 npm run verify:feeds
-npm run verify:rss-cache
+npm run audit:acceptance
 npm run verify:routes
 npm run verify:dist
 cd backend && npm run type-check
@@ -274,8 +271,8 @@ npm run verify:accessibility   # requires Playwright browsers
 
 ## Known Limitations
 
-- Server-side search, Weekly Recap, and website-to-feed discovery require the backend to be running. The frontend provides local search over cached entries and direct RSS fetching when the backend is unavailable.
-- Feed fetching in standalone frontend mode relies on public CORS proxies or the publisher's CORS headers; some networks or feeds may block these proxies.
+- Server-side search, Weekly Recap, website-to-feed discovery, and feed fetching require the backend to be running. The frontend shows cached article responses from the backend when available.
+- Feed fetching relies on direct publisher access from the backend; publishers that block the backend's IP or require authentication will not work.
 - The backend does not implement authentication or multi-user isolation. Do not deploy it in an untrusted multi-user environment without adding access controls.
 - Real-world feed availability varies; the catalog validation script reports stale, blocked, or malformed feeds as warnings rather than hard failures.
 - Persistence is local to the browser and the deployed backend SQLite file; there is no cloud sync or cross-device state.
