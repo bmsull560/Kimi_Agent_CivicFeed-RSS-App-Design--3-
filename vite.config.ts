@@ -11,18 +11,25 @@ export default defineConfig({
       output: {
         manualChunks(id) {
           const normalized = id.replace(/\\/g, "/");
-          if (normalized.endsWith("/src/data/feeds.ts")) return "feed-catalog";
           if (normalized.includes("/node_modules/react") || normalized.includes("/node_modules/scheduler")) return "react-vendor";
           if (normalized.includes("/node_modules/react-router")) return "router-vendor";
           if (normalized.includes("/node_modules/@radix-ui/")) return "radix-vendor";
           if (normalized.includes("/node_modules/lucide-react/")) return "icons-vendor";
-          if (normalized.includes("/node_modules/")) return "vendor";
         },
       },
     },
   },
   server: {
     port: 3000,
+    proxy: {
+      "/api": {
+        target: "http://localhost:4000",
+        changeOrigin: true,
+      },
+    },
+  },
+  preview: {
+    port: 4173,
     proxy: {
       "/api": {
         target: "http://localhost:4000",

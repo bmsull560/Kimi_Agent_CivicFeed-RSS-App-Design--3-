@@ -1,52 +1,13 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { useSearchParams } from "react-router-dom";
 import { Search, Loader2 } from "lucide-react";
 import EntryCard from "../components/EntryCard";
 import EmptyState from "../components/EmptyState";
-import type { RssEntry } from "../types";
+import { useUserFeeds } from "../hooks/useUserFeeds";
+import type { RssEntry, SearchResultItem } from "../types";
 
-interface SearchResultItem {
-  entryId: string;
-  feedId: string;
-  title: string;
-  link: string;
-  description: string;
-  pubDate: string;
-  author: string | null;
-  feedName: string;
-  aiSummary?: string;
-  aiTags?: string[];
-}
-
-export default function SearchResults() {
-  const [searchParams] = useSearchParams();
-  const q = searchParams.get("q") || "";
-  const [results, setResults] = useState<SearchResultItem[]>([]);
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-
-  useEffect(() => {
-    if (!q.trim()) {
-      Promise.resolve().then(() => setResults([]));
-      return;
-    }
-    Promise.resolve().then(() => {
-      setLoading(true);
-      setError(null);
-    });
-    fetch(`/api/search?q=${encodeURIComponent(q)}`)
-      .then((r) => r.json())
-      .then((data) => {
-        setResults(data.results || []);
-        setLoading(false);
-      })
-      .catch((e) => {
-        setError(e instanceof Error ? e.message : String(e));
-        setLoading(false);
-      });
-  }, [q]);
-
-  const toEntry = (r: SearchResultItem): RssEntry => ({
+function toEntry(r: SearchResultItem): RssEntry {
+  return {
     id: r.entryId,
     title: r.title,
     link: r.link,
@@ -58,7 +19,61 @@ export default function SearchResults() {
     fetchedAt: 0,
     aiSummary: r.aiSummary,
     aiTags: r.aiTags,
-  });
+  };
+}
+
+export default function SearchResults() {
+  const [searchParams] = useSearchParams();
+  const q = searchParams.get("q") || "";
+  const [results, setResults] = useState<SearchResultItem[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const { enabledFeeds } = useUserFeeds();
+
+  const enabledIds = useMemo(() => new Set(enabledFeeds.map((f) => f.id)), [enabledFeeds]);
+
+  useEffect(() => {
+    const run = async () => {
+      if (!q.trim()) {
+        setResults([]);
+        setLoading(false);
+        setError(null);
+        return;
+      }
+
+      setLoading(true);
+      setError(null);
+      setResults([]);
+
+      const apiBase = import.meta.env?.VITE_API_URL || "";
+      const candidates = new Set<string>([apiBase]);
+      if (["localhost", "127.0.0.1"].includes(window.location.hostname)) {
+        candidates.add("http://localhost:4000");
+      }
+
+      for (const base of candidates) {
+        try {
+          const controller = new AbortController();
+          const timer = setTimeout(() => controller.abort(), 10000);
+          const r = await fetch(`${base}/api/search?q=${encodeURIComponent(q)}&limit=50`, { signal: controller.signal });
+          clearTimeout(timer);
+
+          if (!r.ok) continue;
+          const data = (await r.json()) as { results?: SearchResultItem[] };
+          setResults((data.results || []).filter((item) => enabledIds.has(item.feedId)));
+          setLoading(false);
+          return;
+        } catch {
+          // Try next candidate.
+        }
+      }
+
+      setError("Search unavailable. Is the backend running?");
+      setLoading(false);
+    };
+
+    void run();
+  }, [q, enabledIds]);
 
   return (
     <div className="space-y-4">
@@ -69,25 +84,24 @@ export default function SearchResults() {
             {q ? `Search: "${q}"` : "Search Articles"}
           </h1>
           {!loading && q && (
-            <p className="text-sm text-slate-500">{results.length} result{results.length !== 1 ? "s" : ""}</p>
+            <p className="text-sm text-slate-500">
+              {results.length} result{results.length !== 1 ? "s" : ""}
+              {error && ` — ${error}`}
+            </p>
           )}
         </div>
       </div>
 
-      {loading && (
+      {loading && results.length === 0 && (
         <div className="card p-8 flex items-center justify-center gap-2 text-slate-500">
-          <Loader2 size={18} className="animate-spin" /> Searching...
+          <Loader2 size={18} className="animate-spin" /> Searching…
         </div>
       )}
 
-      {error && (
-        <div className="card p-6 text-red-600">{error}</div>
-      )}
-
-      {!loading && !error && q && results.length === 0 && (
+      {!loading && q && results.length === 0 && (
         <EmptyState
           message="No articles found"
-          subMessage={`No results for "${q}". Try different keywords.`}
+          subMessage={error || `No results for "${q}". Try different keywords or visit a feed to cache more articles.`}
         />
       )}
 
@@ -102,7 +116,7 @@ export default function SearchResults() {
       {!q && (
         <EmptyState
           message="Enter a search term"
-          subMessage="Search across all article titles, descriptions, summaries, and tags."
+          subMessage="Search across cached article titles, descriptions, summaries, and tags from enabled feeds."
         />
       )}
     </div>

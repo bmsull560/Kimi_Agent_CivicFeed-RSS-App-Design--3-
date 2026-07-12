@@ -1,21 +1,47 @@
 import { expect, test, type Page } from "@playwright/test";
 
-const cacheKey = "civicfeed_v2_cache";
+function makeArticles(feedId: string, feedName: string, title: string, entryId: string) {
+  return {
+    entries: [
+      {
+        id: entryId,
+        title,
+        link: `https://example.com/${entryId}`,
+        description: "Deterministic browser smoke entry.",
+        pubDate: "Mon, 15 Jun 2026 12:00:00 GMT",
+        feedId,
+        feedName,
+        fetchedAt: Date.now(),
+      },
+    ],
+    cached: false,
+    error: null,
+  };
+}
 
-function sampleRss(title = "CivicFeed Test Entry") {
-  return `<?xml version="1.0" encoding="UTF-8" ?>
-<rss version="2.0">
-  <channel>
-    <title>ITA News</title>
-    <item>
-      <title>${title}</title>
-      <link>https://www.trade.gov/test-entry</link>
-      <description>Deterministic browser smoke entry.</description>
-      <pubDate>Mon, 15 Jun 2026 12:00:00 GMT</pubDate>
-      <guid>browser-smoke-entry</guid>
-    </item>
-  </channel>
-</rss>`;
+function makeCatalog() {
+  return {
+    feeds: [
+      {
+        id: "feed-001",
+        name: "ITA News",
+        shortName: "ITA News",
+        agency: "International Trade Administration",
+        description: "Export Promotion",
+        rssUrl: "https://www.trade.gov/rss.xml",
+        website: "https://www.trade.gov",
+        department: "",
+        category: "Commerce & Trade",
+        subCategory: "export-promotion",
+        contentType: "Export Promotion",
+        updateFrequency: "",
+        status: "working",
+        tags: ["export-promotion"],
+      },
+    ],
+    categoryList: ["Commerce & Trade"],
+    feedStats: { total: 1, working: 1, categories: 1 },
+  };
 }
 
 async function collectRuntimeErrors(page: Page) {
@@ -31,11 +57,26 @@ async function collectRuntimeErrors(page: Page) {
   return errors;
 }
 
-async function mockTradeFeed(page: Page, title?: string) {
-  await page.route("https://www.trade.gov/rss.xml", route =>
+async function mockSmokeBackend(page: Page, title = "CivicFeed Test Entry") {
+  await page.route("**/api/feeds", route =>
     route.fulfill({
-      contentType: "application/rss+xml",
-      body: sampleRss(title),
+      status: 200,
+      contentType: "application/json",
+      body: JSON.stringify(makeCatalog()),
+    }),
+  );
+  await page.route("**/api/feeds/feed-001/articles", route =>
+    route.fulfill({
+      status: 200,
+      contentType: "application/json",
+      body: JSON.stringify(makeArticles("feed-001", "ITA News", title, "browser-smoke-entry")),
+    }),
+  );
+  await page.route("**/api/articles/recent*", route =>
+    route.fulfill({
+      status: 200,
+      contentType: "application/json",
+      body: JSON.stringify({ results: [] }),
     }),
   );
 }
@@ -43,7 +84,7 @@ async function mockTradeFeed(page: Page, title?: string) {
 test("desktop user can search, open, and read a feed entry without runtime errors", async ({ page }, testInfo) => {
   test.skip(testInfo.project.name.includes("mobile"), "desktop-only path");
   const runtimeErrors = await collectRuntimeErrors(page);
-  await mockTradeFeed(page);
+  await mockSmokeBackend(page);
 
   await page.goto("/#/");
   await expect(page.getByRole("heading", { name: "U.S. Government RSS Feeds" })).toBeVisible();
@@ -58,46 +99,30 @@ test("desktop user can search, open, and read a feed entry without runtime error
   expect(runtimeErrors).toEqual([]);
 });
 
-test("cached entries render immediately while a stale refresh is attempted", async ({ page }, testInfo) => {
-  test.skip(testInfo.project.name.includes("mobile"), "desktop-only path");
-  const runtimeErrors = await collectRuntimeErrors(page);
-  await page.addInitScript(({ key }) => {
-    window.localStorage.setItem(key, JSON.stringify([
-      {
-        feedId: "feed-001",
-        fetchedAt: Date.now() - 60 * 60 * 1000,
-        accessedAt: Date.now() - 60 * 60 * 1000,
-        entries: [
-          {
-            id: "cached-entry",
-            title: "Cached ITA Entry",
-            link: "https://www.trade.gov/cached-entry",
-            description: "This entry proves stale cache rendering.",
-            pubDate: new Date("2026-06-15T12:00:00.000Z").toISOString(),
-            feedId: "feed-001",
-            feedName: "ITA News",
-            fetchedAt: Date.now() - 60 * 60 * 1000,
-          },
-        ],
-      },
-    ]));
-  }, { key: cacheKey });
-  await page.route("https://www.trade.gov/rss.xml", route => route.abort());
-
-  await page.goto("/#/feed/feed-001");
-  await expect(page.getByText("Cached ITA Entry")).toBeVisible();
-  await expect(page.getByText(/Showing cached entries\. Refresh failed:/)).toBeVisible();
-  expect(runtimeErrors).toEqual([]);
-});
-
 test("feed failures show an explicit empty/error state instead of a blank screen", async ({ page }, testInfo) => {
   test.skip(testInfo.project.name.includes("mobile"), "desktop-only path");
   const runtimeErrors = await collectRuntimeErrors(page);
-  await page.route("https://www.trade.gov/rss.xml", route => route.fulfill({
-    contentType: "application/xml",
-    body: "<rss><channel></channel></rss>",
-  }));
-  await page.route(/api\.allorigins\.win|api\.codetabs\.com|corsproxy\.io/, route => route.abort());
+  await page.route("**/api/feeds", route =>
+    route.fulfill({
+      status: 200,
+      contentType: "application/json",
+      body: JSON.stringify(makeCatalog()),
+    }),
+  );
+  await page.route("**/api/feeds/feed-001/articles", route =>
+    route.fulfill({
+      status: 502,
+      contentType: "application/json",
+      body: JSON.stringify({ entries: [], cached: false, error: "Feed unavailable" }),
+    }),
+  );
+  await page.route("**/api/articles/recent*", route =>
+    route.fulfill({
+      status: 200,
+      contentType: "application/json",
+      body: JSON.stringify({ results: [] }),
+    }),
+  );
 
   await page.goto("/#/feed/feed-001");
   await expect(page.getByText("Failed to load entries")).toBeVisible();
@@ -108,7 +133,7 @@ test("feed failures show an explicit empty/error state instead of a blank screen
 test("mobile layout exposes the directory and navigates to detail", async ({ page }, testInfo) => {
   test.skip(testInfo.project.name !== "mobile-chromium", "mobile-only path");
   const runtimeErrors = await collectRuntimeErrors(page);
-  await mockTradeFeed(page, "Mobile CivicFeed Entry");
+  await mockSmokeBackend(page, "Mobile CivicFeed Entry");
 
   await page.goto("/#/");
   await expect(page.getByRole("heading", { name: "U.S. Government RSS Feeds" })).toBeVisible();

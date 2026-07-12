@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect, useMemo } from "react";
 import { Shield, Search, Rss, Menu, X } from "lucide-react";
-import { feedStats, searchFeeds } from "../data/feeds";
+import { useUserFeeds } from "../hooks/useUserFeeds";
 import type { Feed } from "../types";
 import { useNavigate } from "react-router-dom";
 
@@ -15,8 +15,22 @@ export default function Header({ onMenuToggle, sidebarOpen }: HeaderProps) {
   const inputRef = useRef<HTMLInputElement>(null);
   const dropdownRef = useRef<HTMLDivElement>(null);
   const navigate = useNavigate();
+  const { allFeeds } = useUserFeeds();
 
-  const results = useMemo<Feed[]>(() => (query.length >= 2 ? searchFeeds(query).slice(0, 8) : []), [query]);
+  const results = useMemo<Feed[]>(() => {
+    if (query.length < 2) return [];
+    const q = query.toLowerCase();
+    return allFeeds.filter(f =>
+      f.name.toLowerCase().includes(q) ||
+      f.agency.toLowerCase().includes(q) ||
+      f.category.toLowerCase().includes(q) ||
+      f.tags.some(t => t.toLowerCase().includes(q))
+    ).slice(0, 8);
+  }, [query, allFeeds]);
+
+  const enabledFeedCount = useMemo(() => allFeeds.filter(f => f.enabled !== false).length, [allFeeds]);
+  const categoryCount = useMemo(() => new Set(allFeeds.map(f => f.category)).size, [allFeeds]);
+
   const isDropdownVisible = showDropdown && query.length >= 2;
 
   useEffect(() => {
@@ -64,8 +78,8 @@ export default function Header({ onMenuToggle, sidebarOpen }: HeaderProps) {
           </a>
         </div>
         <div className="hidden sm:flex items-center gap-3 text-[0.6875rem] text-slate-500">
-          <span className="badge bg-slate-100 text-slate-600">{feedStats.total} Feeds</span>
-          <span className="badge bg-blue-50 text-blue-600">{Object.keys(feedStats.byCategory).length} Categories</span>
+          <span className="badge bg-slate-100 text-slate-600">{enabledFeedCount} Feeds</span>
+          <span className="badge bg-blue-50 text-blue-600">{categoryCount} Categories</span>
         </div>
       </div>
       <div className="px-4 lg:px-6 pb-3">

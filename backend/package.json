@@ -6,8 +6,11 @@
   "scripts": {
     "dev": "tsx watch src/server.ts",
     "build": "tsc",
+    "type-check": "tsc --noEmit",
     "start": "node dist/server.js",
     "seed": "tsx src/db.ts --seed",
+    "test": "vitest run",
+    "test:watch": "vitest",
     "validate:feeds": "tsx src/validate-feeds.ts",
     "validate:feeds:strict": "tsx src/validate-feeds.ts --strict",
     "ingest": "tsx src/ingest.ts"
@@ -23,7 +26,10 @@
     "@types/cors": "^2.8.17",
     "@types/express": "^5.0.0",
     "@types/node": "^24.0.0",
+    "@types/supertest": "^6.0.2",
+    "supertest": "^7.0.0",
     "tsx": "^4.22.0",
-    "typescript": "~5.9.0"
+    "typescript": "~5.9.0",
+    "vitest": "^4.1.10"
   }
 }

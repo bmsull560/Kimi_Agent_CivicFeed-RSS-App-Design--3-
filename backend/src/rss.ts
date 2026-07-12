@@ -1,173 +1,138 @@
-import { XMLParser } from "fast-xml-parser";
+import { guardedFetch } from "./url-security.js";
+import { db } from "./db.js";
+import { logger } from "./logger.js";
+import {
+  RssEntry,
+  parseRssXml,
+} from "./rss-parser.js";
 
-export interface RssEntry {
-  id: string;
-  title: string;
-  link: string;
-  description: string;
-  pubDate: string;
-  author?: string;
-  categories?: string[];
-  feedId: string;
-  feedName: string;
-  fetchedAt: number;
-}
+export type { RssEntry };
 
 export interface FetchResult {
   entries: RssEntry[];
   error: string | null;
 }
 
-function generateEntryId(link: string, title: string, pubDate: string): string {
-  const str = `${link}::${title}::${pubDate}`;
-  let hash = 0;
-  for (let i = 0; i < str.length; i++) {
-    const char = str.charCodeAt(i);
-    hash = ((hash << 5) - hash) + char;
-    hash |= 0;
-  }
-  return `entry-${Math.abs(hash).toString(36)}`;
+export interface FeedFetchStatus {
+  feedId: string;
+  lastSuccessAt: number | null;
+  lastErrorAt: number | null;
+  lastErrorMessage: string | null;
+  attemptCount: number;
+  successCount: number;
+  failureCount: number;
+  nextFetchAt: number | null;
 }
 
-function normalizeDate(dateStr: string): string {
-  if (!dateStr) return new Date().toISOString();
-  const cleaned = dateStr.replace(/\s+\(.*\)$/, "").trim();
-  const d = new Date(cleaned);
-  if (!isNaN(d.getTime())) return d.toISOString();
-  const usMatch = cleaned.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})/);
-  if (usMatch) {
-    const [, m, day, y] = usMatch;
-    const dd = new Date(`${y}-${m.padStart(2, "0")}-${day.padStart(2, "0")}`);
-    if (!isNaN(dd.getTime())) return dd.toISOString();
-  }
-  return new Date().toISOString();
+const SUCCESS_INTERVAL_MS = 15 * 60 * 1000;
+const FAILURE_INTERVAL_MS = 5 * 60 * 1000;
+
+const MAX_RETRIES = 2; // 1 initial attempt + 2 retries = 3 total
+const RETRY_BASE_MS = 500;
+const RETRY_MAX_MS = 4_000;
+
+const CIRCUIT_FAILURE_THRESHOLD = 5;
+const CIRCUIT_OPEN_MS = 5 * 60 * 1000;
+
+type CircuitState = "closed" | "open" | "half-open";
+
+interface CircuitBreaker {
+  state: CircuitState;
+  failures: number;
+  lastFailureAt: number | null;
+  openedAt: number | null;
 }
 
-function parseRssItems(items: any[], feedId: string, feedName: string): RssEntry[] {
-  const entries: RssEntry[] = [];
-  const now = Date.now();
-  for (const item of items) {
-    const getTextVal = (v: any): string => typeof v === "string" ? v : (v?.["#text"] || "");
-    const title = getTextVal(item.title).trim();
-    const link = (getTextVal(item.link) || getTextVal(item.guid)).trim();
-    const description = getTextVal(item.description) || getTextVal(item["content:encoded"]);
-    const pubRaw = getTextVal(item.pubDate) || getTextVal(item["dc:date"]);
-    const author = getTextVal(item["dc:creator"]) || getTextVal(item.author) || undefined;
-    const guid = getTextVal(item.guid).trim();
-    const cats: string[] = [];
-    if (item.category) {
-      const raw = Array.isArray(item.category) ? item.category : [item.category];
-      for (const c of raw) {
-        const t = typeof c === "string" ? c.trim() : (c?.["#text"] || "").trim();
-        if (t) cats.push(t);
-      }
-    }
-    if (!title && !link) continue;
-    entries.push({
-      id: guid || generateEntryId(link, title, pubRaw),
-      title: title || "Untitled",
-      link,
-      description,
-      pubDate: normalizeDate(pubRaw),
-      author: typeof author === "string" ? author : undefined,
-      categories: cats.length > 0 ? cats : undefined,
-      feedId,
-      feedName,
-      fetchedAt: now,
-    });
+const circuitBreakers = new Map<string, CircuitBreaker>();
+
+function getCircuitBreaker(feedId: string): CircuitBreaker {
+  let cb = circuitBreakers.get(feedId);
+  if (!cb) {
+    cb = { state: "closed", failures: 0, lastFailureAt: null, openedAt: null };
+    circuitBreakers.set(feedId, cb);
   }
-  return entries;
+  return cb;
 }
 
-function parseAtomEntries(entries: any[], feedId: string, feedName: string): RssEntry[] {
-  const result: RssEntry[] = [];
-  const now = Date.now();
-  for (const entry of entries) {
-    const title = (entry.title || "").trim();
-    let link = "";
-    if (entry.link) {
-      const links = Array.isArray(entry.link) ? entry.link : [entry.link];
-      for (const l of links) {
-        const rel = typeof l === "string" ? undefined : l["@_rel"];
-        if (!rel || rel === "alternate") {
-          link = typeof l === "string" ? l : (l["@_href"] || "");
-          break;
-        }
-      }
+function shouldAllow(cb: CircuitBreaker, now = Date.now()): boolean {
+  if (cb.state === "closed") return true;
+  if (cb.state === "open") {
+    if (cb.openedAt && now - cb.openedAt >= CIRCUIT_OPEN_MS) {
+      cb.state = "half-open";
+      logger.info("circuit breaker half-open", { state: "half-open" });
+      return true;
     }
-    const summary = entry.summary || entry.content || "";
-    const pubRaw = entry.published || entry.updated || "";
-    const id = (entry.id || "").trim();
-    let author: string | undefined;
-    if (entry.author) {
-      const a = Array.isArray(entry.author) ? entry.author[0] : entry.author;
-      author = typeof a === "string" ? a : (a.name || undefined);
-    }
-    const cats: string[] = [];
-    if (entry.category) {
-      const raw = Array.isArray(entry.category) ? entry.category : [entry.category];
-      for (const c of raw) {
-        const t = typeof c === "string" ? c.trim() : (c["@_term"] || c["#text"] || "").trim();
-        if (t) cats.push(t);
-      }
-    }
-    if (!title && !link) continue;
-    result.push({
-      id: id || generateEntryId(link, title, pubRaw),
-      title: title || "Untitled",
-      link,
-      description: summary,
-      pubDate: normalizeDate(pubRaw),
-      author: typeof author === "string" ? author : undefined,
-      categories: cats.length > 0 ? cats : undefined,
-      feedId,
-      feedName,
-      fetchedAt: now,
-    });
+    return false;
   }
-  return result;
+  // half-open: allow a single probe request
+  return true;
 }
 
-export function parseRssXml(xmlText: string, feedId: string, feedName: string): RssEntry[] {
-  const parser = new XMLParser({
-    ignoreAttributes: false,
-    attributeNamePrefix: "@_",
-    textNodeName: "#text",
-    parseTagValue: false,
-    trimValues: true,
-  });
+function recordCircuitSuccess(cb: CircuitBreaker, feedId: string) {
+  if (cb.state !== "closed") {
+    logger.info("circuit breaker closed", { feedId });
+  }
+  cb.state = "closed";
+  cb.failures = 0;
+  cb.lastFailureAt = null;
+  cb.openedAt = null;
+}
 
-  let parsed: any;
-  try {
-    parsed = parser.parse(xmlText);
-  } catch (e) {
-    return [];
+function recordCircuitFailure(cb: CircuitBreaker, feedId: string, now = Date.now()) {
+  cb.failures += 1;
+  cb.lastFailureAt = now;
+
+  if (cb.state === "half-open") {
+    cb.state = "open";
+    cb.openedAt = now;
+    logger.warn("circuit breaker opened after half-open failure", { feedId, failures: cb.failures });
+    return;
   }
 
-  if (!parsed) return [];
-
-  // RSS 2.0
-  const rss = parsed.rss;
-  if (rss?.channel?.item) {
-    const items = Array.isArray(rss.channel.item) ? rss.channel.item : [rss.channel.item];
-    return parseRssItems(items, feedId, feedName);
+  if (cb.failures >= CIRCUIT_FAILURE_THRESHOLD) {
+    cb.state = "open";
+    cb.openedAt = now;
+    logger.warn("circuit breaker opened", { feedId, failures: cb.failures });
   }
+}
 
-  // Atom
-  const feed = parsed.feed;
-  if (feed?.entry) {
-    const entries = Array.isArray(feed.entry) ? feed.entry : [feed.entry];
-    return parseAtomEntries(entries, feedId, feedName);
-  }
+function sleep(ms: number): Promise<void> {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
 
-  // RDF
-  const rdf = parsed["rdf:RDF"] || parsed.RDF;
-  if (rdf?.item) {
-    const items = Array.isArray(rdf.item) ? rdf.item : [rdf.item];
-    return parseRssItems(items, feedId, feedName);
-  }
+function backoffMs(attempt: number): number {
+  // Exponential backoff with full jitter: 500ms, 1000ms, 2000ms, capped at 4s.
+  const base = RETRY_BASE_MS * 2 ** attempt;
+  const capped = Math.min(base, RETRY_MAX_MS);
+  return Math.floor(Math.random() * capped);
+}
 
-  return [];
+export function recordFeedSuccess(feedId: string, now = Date.now()) {
+  const stmt = db.prepare(`
+    INSERT INTO feed_fetch_status (feed_id, last_success_at, attempt_count, success_count, next_fetch_at)
+    VALUES (?, ?, 1, 1, ?)
+    ON CONFLICT(feed_id) DO UPDATE SET
+      last_success_at = excluded.last_success_at,
+      attempt_count = attempt_count + 1,
+      success_count = success_count + 1,
+      next_fetch_at = excluded.next_fetch_at,
+      last_error_message = NULL
+  `);
+  stmt.run(feedId, now, now + SUCCESS_INTERVAL_MS);
+}
+
+export function recordFeedFailure(feedId: string, errorMessage: string, now = Date.now()) {
+  const stmt = db.prepare(`
+    INSERT INTO feed_fetch_status (feed_id, last_error_at, last_error_message, attempt_count, failure_count, next_fetch_at)
+    VALUES (?, ?, ?, 1, 1, ?)
+    ON CONFLICT(feed_id) DO UPDATE SET
+      last_error_at = excluded.last_error_at,
+      last_error_message = excluded.last_error_message,
+      attempt_count = attempt_count + 1,
+      failure_count = failure_count + 1,
+      next_fetch_at = excluded.next_fetch_at
+  `);
+  stmt.run(feedId, now, errorMessage, now + FAILURE_INTERVAL_MS);
 }
 
 function validateFeedClientSide(entries: RssEntry[], feedId: string) {
@@ -193,33 +158,91 @@ function validateFeedClientSide(entries: RssEntry[], feedId: string) {
   }
 
   if (issues.length > 0) {
-    console.warn(`[FeedValidator] ${feedId} issues:`, issues.slice(0, 5));
+    logger.warn("feed validation issues", { feedId, issues: issues.slice(0, 5) });
   }
 }
 
+/**
+ * Fetch an RSS/Atom feed with retry, circuit breaker, and structured logging.
+ *
+ * - Retries transient failures (network errors, 5xx, timeouts) up to MAX_RETRIES
+ *   with exponential backoff + jitter.
+ * - Opens a circuit breaker after CIRCUIT_FAILURE_THRESHOLD consecutive failures,
+ *   short-circuiting subsequent calls for CIRCUIT_OPEN_MS.
+ * - Records success/failure in feed_fetch_status for scheduler backoff.
+ */
 export async function fetchFeed(url: string, feedId: string, feedName: string): Promise<FetchResult> {
-  try {
-    const controller = new AbortController();
-    const timer = setTimeout(() => controller.abort(), 15000);
-    const res = await fetch(url, { signal: controller.signal });
-    clearTimeout(timer);
+  const cb = getCircuitBreaker(feedId);
+  const now = Date.now();
 
-    if (!res.ok) {
-      return { entries: [], error: `HTTP ${res.status}` };
-    }
-
-    const xml = await res.text();
-    const entries = parseRssXml(xml, feedId, feedName);
-    if (entries.length === 0) {
-      return { entries: [], error: "No entries parsed" };
-    }
-
-    validateFeedClientSide(entries, feedId);
-    return { entries, error: null };
-  } catch (e) {
-    return {
-      entries: [],
-      error: e instanceof Error ? e.message : String(e),
-    };
+  if (!shouldAllow(cb, now)) {
+    const remainingMs = (cb.openedAt ?? now) + CIRCUIT_OPEN_MS - now;
+    const message = `Circuit breaker open for feed ${feedId} (${Math.ceil(remainingMs / 1000)}s remaining)`;
+    logger.warn("feed fetch circuit breaker open", { feedId, remainingMs });
+    recordFeedFailure(feedId, message, now);
+    return { entries: [], error: message };
   }
+
+  logger.info("feed fetch attempt", { feedId, url });
+
+  let lastError = "";
+  for (let attempt = 0; attempt <= MAX_RETRIES; attempt++) {
+    if (attempt > 0) {
+      const delay = backoffMs(attempt - 1);
+      logger.info("feed fetch retry", { feedId, attempt, delayMs: delay });
+      await sleep(delay);
+    }
+
+    const fetchResult = await guardedFetch(url);
+
+    if (fetchResult.ok) {
+      const entries = parseRssXml(fetchResult.text, feedId, feedName);
+      if (entries.length === 0) {
+        const message = "No entries parsed";
+        logger.warn("feed fetch returned no entries", { feedId });
+        lastError = message;
+        continue; // retry in case we got a partial/bad response
+      }
+
+      recordFeedSuccess(feedId, now);
+      recordCircuitSuccess(cb, feedId);
+      validateFeedClientSide(entries, feedId);
+      logger.info("feed fetch success", { feedId, entryCount: entries.length });
+      return { entries, error: null };
+    }
+
+    lastError = fetchResult.error || `HTTP ${fetchResult.status}`;
+    const isRetryable =
+      fetchResult.status >= 500 ||
+      fetchResult.status === 429 ||
+      fetchResult.status === 408 ||
+      fetchResult.status === 0;
+
+    logger.warn("feed fetch attempt failed", {
+      feedId,
+      attempt,
+      status: fetchResult.status,
+      error: lastError,
+      retryable: isRetryable,
+    });
+
+    if (!isRetryable) {
+      break; // client errors are not retryable
+    }
+  }
+
+  recordFeedFailure(feedId, lastError, now);
+  recordCircuitFailure(cb, feedId, now);
+  logger.warn("feed fetch failed after retries", { feedId, error: lastError, attempts: MAX_RETRIES + 1 });
+  return { entries: [], error: lastError };
+}
+
+/** Reset circuit-breaker state; useful in tests. */
+export function resetCircuitBreaker(feedId: string) {
+  circuitBreakers.delete(feedId);
+}
+
+/** Export for tests and observability. */
+export function getCircuitBreakerState(feedId: string): CircuitBreaker | undefined {
+  return circuitBreakers.get(feedId);
 }
