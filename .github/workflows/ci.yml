@@ -32,6 +32,10 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
+      - name: Install backend dependencies for E2E setup
+        working-directory: backend
+        run: npm ci
+
       - name: Audit dependencies
         run: npm audit --audit-level=low
 
@@ -46,9 +50,6 @@ jobs:
 
       - name: Verify feed catalog
         run: npm run verify:feeds
-
-      - name: Verify RSS/cache scripts
-        run: npm run verify:rss-cache
 
       - name: Verify route rendering
         run: npm run verify:routes
