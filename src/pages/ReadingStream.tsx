@@ -1,5 +1,5 @@
 import { useState, useMemo, useEffect } from "react";
-import { useSearchParams } from "react-router-dom";
+import { useSearchParams, useNavigate } from "react-router-dom";
 import { Newspaper, Loader2 } from "lucide-react";
 import { useUserFeeds } from "../hooks/useUserFeeds";
 import EntryCard from "../components/EntryCard";
@@ -33,6 +33,7 @@ function toEntry(r: SearchResultItem): RssEntry {
 }
 
 export default function ReadingStream() {
+  const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
   const { enabledFeeds } = useUserFeeds();
   const [tick, setTick] = useState(0);
@@ -208,7 +209,7 @@ export default function ReadingStream() {
               ? "Visit a feed to load articles, then return here."
               : "Try adjusting your filters."
           }
-          action={{ label: "Browse Feeds", onClick: () => (window.location.hash = "#/feeds") }}
+          action={{ label: "Browse Feeds", onClick: () => navigate("/feeds") }}
         />
       ) : (
         <div className="card divide-y divide-slate-100 px-5">

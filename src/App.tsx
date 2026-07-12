@@ -10,6 +10,7 @@ import ReadingStream from "./pages/ReadingStream";
 import EntryDetail from "./pages/EntryDetail";
 import Bookmarks from "./pages/Bookmarks";
 import Archive from "./pages/Archive";
+import NotFound from "./pages/NotFound";
 
 function App() {
   return (
@@ -25,6 +26,7 @@ function App() {
           <Route path="/archive" element={<Archive />} />
           <Route path="/search" element={<SearchResults />} />
           <Route path="/recap" element={<Recap />} />
+          <Route path="*" element={<NotFound />} />
         </Routes>
       </Layout>
     </ErrorBoundary>

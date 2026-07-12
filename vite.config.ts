@@ -4,7 +4,7 @@ import { defineConfig } from "vite";
 
 // https://vite.dev/config/
 export default defineConfig({
-  base: "./",
+  base: "/",
   plugins: [react()],
   build: {
     rollupOptions: {
@@ -25,6 +25,8 @@ export default defineConfig({
   },
   server: {
     port: 3000,
+    // @ts-expect-error Vite's types omit historyApiFallback but it is the intended dev-server SPA fallback option.
+    historyApiFallback: true,
     proxy: {
       "/api": {
         target: "http://localhost:4000",
