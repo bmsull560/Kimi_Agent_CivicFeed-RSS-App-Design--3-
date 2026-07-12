@@ -121,7 +121,7 @@ export default function Sidebar({ isOpen, onClose }: SidebarProps) {
         />
       )}
       <aside
-        className={`fixed lg:sticky top-[97px] left-0 z-40 w-64 h-[calc(100vh-97px)] bg-white border-r border-slate-200 transform transition-transform lg:transform-none ${isOpen ? "translate-x-0" : "-translate-x-full"}`}
+        className={`fixed lg:sticky top-[97px] left-0 z-40 w-64 h-[calc(100vh-97px)] bg-card border-r border-border transform transition-transform lg:transform-none ${isOpen ? "translate-x-0" : "-translate-x-full"}`}
         role="navigation"
         aria-label="Feed categories"
       >
