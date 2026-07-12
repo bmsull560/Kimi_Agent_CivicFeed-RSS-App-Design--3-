@@ -32,7 +32,9 @@ function renderFeed(feed, index) {
   return `  {id:${jsString(id)},name:${jsString(feed.name)},shortName:${jsString(feed.shortName)},agency:${jsString(feed.agency)},description:${jsString(feed.description)},rssUrl:${jsString(feed.rssUrl)},website:${jsString(feed.website)},department:${jsString(feed.department)},category:${jsString(feed.category)},subCategory:${jsString(feed.subCategory)},contentType:${jsString(feed.contentType)},updateFrequency:${jsString(feed.updateFrequency)},status:"working" as const${priority},tags:${tags}},`;
 }
 
-const activeCategories = categoryList.filter((category) => activeFeeds.some((feed) => feed.category === category));
+const activeCategories = categoryList.filter((category) =>
+  activeFeeds.some((feed) => feed.category === category)
+);
 const byCategory = Object.fromEntries(activeCategories.map((category) => [category, 0]));
 for (const feed of activeFeeds) byCategory[feed.category] += 1;
 
@@ -61,4 +63,6 @@ ${activeCategories.map((category) => `  ${jsString(category)},`).join("\n")}
 ${helpers}`;
 
 fs.writeFileSync(feedsPath, nextSource);
-console.log(`Synced active catalog to ${activeFeeds.length} working feeds across ${activeCategories.length} categories.`);
+console.log(
+  `Synced active catalog to ${activeFeeds.length} working feeds across ${activeCategories.length} categories.`
+);

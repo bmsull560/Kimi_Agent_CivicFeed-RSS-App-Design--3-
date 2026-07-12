@@ -1,10 +1,27 @@
 import { useParams, useNavigate } from "react-router-dom";
-import { ArrowLeft, ExternalLink, Bookmark, BookmarkCheck, Eye, EyeOff, Archive, ArchiveRestore } from "lucide-react";
+import {
+  ArrowLeft,
+  ExternalLink,
+  Bookmark,
+  BookmarkCheck,
+  Eye,
+  EyeOff,
+  Archive,
+  ArchiveRestore,
+} from "lucide-react";
 import { useUserFeeds } from "../hooks/useUserFeeds";
 import { useRssFeed } from "../hooks/useRssFeed";
 import EmptyState from "../components/EmptyState";
 import LoadingState from "../components/LoadingState";
-import { isBookmarked, isRead, isArchived, toggleBookmark, toggleRead, toggleArchived, markRead } from "../lib/userData";
+import {
+  isBookmarked,
+  isRead,
+  isArchived,
+  toggleBookmark,
+  toggleRead,
+  toggleArchived,
+  markRead,
+} from "../lib/userData";
 import { Button } from "@/components/ui/button";
 
 function stripHtml(html: string): string {
@@ -22,12 +39,11 @@ export default function EntryDetail() {
   const { feedId, entryId } = useParams<{ feedId: string; entryId: string }>();
   const navigate = useNavigate();
   const { allFeeds } = useUserFeeds();
-  const feed = feedId ? allFeeds.find(f => f.id === feedId) : undefined;
-  const { status, entries, error } = useRssFeed(feed?.rssUrl || "", feed?.id || "", feed?.shortName || "");
+  const feed = feedId ? allFeeds.find((f) => f.id === feedId) : undefined;
+  const { status, entries, error } = useRssFeed(feed?.rssUrl || "", feed?.id || "");
 
   const decodedEntryId = entryId ? decodeURIComponent(entryId) : "";
-  const entry = entries.find(e => e.id === decodedEntryId) ||
-    (feedId ? undefined : undefined);
+  const entry = entries.find((e) => e.id === decodedEntryId) || (feedId ? undefined : undefined);
 
   // Mark as read when detail opens
   if (entry) {
@@ -116,11 +132,15 @@ export default function EntryDetail() {
         </div>
 
         {error && entries.length > 0 && (
-          <p className="text-sm text-amber-700 bg-amber-50 px-3 py-2 rounded-md">Showing cached article. Refresh failed: {error}</p>
+          <p className="text-sm text-amber-700 bg-amber-50 px-3 py-2 rounded-md">
+            Showing cached article. Refresh failed: {error}
+          </p>
         )}
 
         <div className="prose prose-slate max-w-none">
-          <p className="text-slate-700 leading-relaxed whitespace-pre-line">{stripHtml(entry.description)}</p>
+          <p className="text-slate-700 leading-relaxed whitespace-pre-line">
+            {stripHtml(entry.description)}
+          </p>
         </div>
       </article>
     </div>

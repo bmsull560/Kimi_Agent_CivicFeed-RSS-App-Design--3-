@@ -33,7 +33,11 @@ async function waitForServer(url: string, timeoutMs = 30000): Promise<void> {
   throw new Error(`Server at ${url} did not become ready within ${timeoutMs}ms`);
 }
 
-function runCommand(command: string, args: string[], options?: { cwd?: string; env?: Record<string, string> }): Promise<number> {
+function runCommand(
+  command: string,
+  args: string[],
+  options?: { cwd?: string; env?: Record<string, string> }
+): Promise<number> {
   return new Promise((resolve, reject) => {
     const proc = spawn(command, args, {
       stdio: "inherit",
@@ -46,7 +50,11 @@ function runCommand(command: string, args: string[], options?: { cwd?: string; e
   });
 }
 
-function startProcess(command: string, args: string[], options?: { cwd?: string; env?: Record<string, string> }) {
+function startProcess(
+  command: string,
+  args: string[],
+  options?: { cwd?: string; env?: Record<string, string> }
+) {
   return spawn(command, args, {
     stdio: "inherit",
     env: { ...process.env, ...options?.env },
@@ -74,11 +82,10 @@ export default async function globalSetup() {
   await waitForServer(`http://127.0.0.1:${MOCK_PORT}/health`);
 
   // Seed the backend catalog and add the live test feed.
-  const exitCode = await runCommand(
-    "npx tsx",
-    ["tests/e2e/seed-test-feed.ts"],
-    { cwd: path.join(process.cwd(), "backend"), env: { CIVICFEED_DB_PATH: DB_PATH, MOCK_RSS_URL: MOCK_URL } }
-  );
+  const exitCode = await runCommand("npx tsx", ["tests/e2e/seed-test-feed.ts"], {
+    cwd: path.join(process.cwd(), "backend"),
+    env: { CIVICFEED_DB_PATH: DB_PATH, MOCK_RSS_URL: MOCK_URL },
+  });
   if (exitCode !== 0) {
     throw new Error(`Seed script exited with code ${exitCode}`);
   }
@@ -105,9 +112,13 @@ export default async function globalSetup() {
 
   // Start the frontend preview after the backend is ready so the initial
   // page load can fetch the catalog successfully.
-  startProcess("npm", ["run", "preview", "--", "--host", "127.0.0.1", "--port", String(FRONTEND_PORT)], {
-    cwd: process.cwd(),
-  });
+  startProcess(
+    "npm",
+    ["run", "preview", "--", "--host", "127.0.0.1", "--port", String(FRONTEND_PORT)],
+    {
+      cwd: process.cwd(),
+    }
+  );
   await waitForServer(`http://127.0.0.1:${FRONTEND_PORT}`);
 
   return async () => {

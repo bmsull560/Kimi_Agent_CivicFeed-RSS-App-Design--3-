@@ -6,7 +6,7 @@ Enterprise-grade civic intelligence RSS agent platform. This monorepo implements
 
 **Phase 2 — Layer 2 Legislative & News Entity Extraction**
 
-This phase adds the Layer 2 extraction service that transforms raw ``RSSFeedItem`` outputs from Layer 1 into structured, Pydantic-validated civic entities using a provider-agnostic LLM structured-output client.
+This phase adds the Layer 2 extraction service that transforms raw `RSSFeedItem` outputs from Layer 1 into structured, Pydantic-validated civic entities using a provider-agnostic LLM structured-output client.
 
 Completed phases:
 
@@ -96,7 +96,7 @@ poetry run extract https://www.trade.gov/rss.xml --feed-id trade-gov \
   --model gpt-4o-mini
 ```
 
-The ``extract`` command fetches the feed, parses entries, and sends each entry to the configured OpenAI-compatible endpoint for structured civic-entity extraction. All LLM calls are abstracted behind ``LLMClient`` so the engine itself is provider-agnostic.
+The `extract` command fetches the feed, parses entries, and sends each entry to the configured OpenAI-compatible endpoint for structured civic-entity extraction. All LLM calls are abstracted behind `LLMClient` so the engine itself is provider-agnostic.
 
 ## Development Commands
 
@@ -129,37 +129,37 @@ poetry run ruff format .       # format
 
 ### Input
 
-- ``RSSFeedItem`` from Layer 1:
-  - ``id``
-  - ``feed_id``
-  - ``title``
-  - ``source_url``
-  - ``publication_date`` (UTC)
-  - ``raw_content``
-  - ``author`` (optional)
+- `RSSFeedItem` from Layer 1:
+  - `id`
+  - `feed_id`
+  - `title`
+  - `source_url`
+  - `publication_date` (UTC)
+  - `raw_content`
+  - `author` (optional)
 
 ### Output
 
-- ``ExtractionResult`` Pydantic model containing:
-  - ``source_entry_id``: the RSS entry that was analyzed
-  - ``extracted_at``: UTC timestamp of extraction
-  - ``entities``: discriminated list of civic entities
+- `ExtractionResult` Pydantic model containing:
+  - `source_entry_id`: the RSS entry that was analyzed
+  - `extracted_at`: UTC timestamp of extraction
+  - `entities`: discriminated list of civic entities
 
 ### Supported entity types
 
-| Entity type          | Model               | Key fields |
-| -------------------- | ------------------- | ---------- |
-| ``legislative_event`` | ``LegislativeEvent`` | ``event_id``, ``event_type``, ``event_date``, ``jurisdiction``, ``summary``, ``impact_score`` |
-| ``bill``              | ``Bill``             | ``bill_identifier``, ``jurisdiction``, ``title``, ``status``, ``sponsors`` |
-| ``official``          | ``Official``         | ``name``, ``title``, ``jurisdiction``, ``party_affiliation`` |
-| ``organization``      | ``Organization``     | ``name``, ``organization_type`` |
-| ``location``          | ``Location``         | ``name``, ``location_type`` |
+| Entity type         | Model              | Key fields                                                                        |
+| ------------------- | ------------------ | --------------------------------------------------------------------------------- |
+| `legislative_event` | `LegislativeEvent` | `event_id`, `event_type`, `event_date`, `jurisdiction`, `summary`, `impact_score` |
+| `bill`              | `Bill`             | `bill_identifier`, `jurisdiction`, `title`, `status`, `sponsors`                  |
+| `official`          | `Official`         | `name`, `title`, `jurisdiction`, `party_affiliation`                              |
+| `organization`      | `Organization`     | `name`, `organization_type`                                                       |
+| `location`          | `Location`         | `name`, `location_type`                                                           |
 
 ### LLM client abstraction
 
-- ``LLMClient`` is an abstract base class with ``complete_structured(prompt, schema)``.
-- ``OpenAICompatibleClient`` works with any OpenAI-compatible ``/v1/chat/completions`` endpoint.
-- ``MockLLMClient`` returns a fixed response and is used in tests to avoid live API calls.
+- `LLMClient` is an abstract base class with `complete_structured(prompt, schema)`.
+- `OpenAICompatibleClient` works with any OpenAI-compatible `/v1/chat/completions` endpoint.
+- `MockLLMClient` returns a fixed response and is used in tests to avoid live API calls.
 
 ## Security
 

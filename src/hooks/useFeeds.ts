@@ -7,7 +7,10 @@ function getApiBaseCandidates(): string[] {
   const candidates = new Set<string>();
   candidates.add(API_BASE);
 
-  if (typeof window !== "undefined" && ["localhost", "127.0.0.1"].includes(window.location.hostname)) {
+  if (
+    typeof window !== "undefined" &&
+    ["localhost", "127.0.0.1"].includes(window.location.hostname)
+  ) {
     candidates.add("http://localhost:4000");
   }
 

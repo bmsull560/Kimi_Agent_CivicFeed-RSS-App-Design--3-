@@ -84,10 +84,11 @@ export default function ReadingStream() {
     let result = entries;
     if (queryParam) {
       const lower = queryParam.toLowerCase();
-      result = result.filter((e) =>
-        e.title.toLowerCase().includes(lower) ||
-        e.description.toLowerCase().includes(lower) ||
-        e.feedName.toLowerCase().includes(lower)
+      result = result.filter(
+        (e) =>
+          e.title.toLowerCase().includes(lower) ||
+          e.description.toLowerCase().includes(lower) ||
+          e.feedName.toLowerCase().includes(lower)
       );
     }
     switch (statusParam) {
@@ -142,7 +143,9 @@ export default function ReadingStream() {
           <h1 className="text-xl font-bold text-slate-900 flex items-center gap-2">
             <Newspaper size={22} className="text-blue-600" /> Reading Stream
           </h1>
-          <p className="text-sm text-slate-500">{filteredEntries.length} article{filteredEntries.length !== 1 ? "s" : ""}</p>
+          <p className="text-sm text-slate-500">
+            {filteredEntries.length} article{filteredEntries.length !== 1 ? "s" : ""}
+          </p>
         </div>
         <div className="flex flex-col sm:flex-row gap-2">
           <div className="flex gap-2">
@@ -154,7 +157,9 @@ export default function ReadingStream() {
               onKeyDown={(e) => e.key === "Enter" && applyFilters()}
               className="w-48"
             />
-            <Button type="button" variant="outline" onClick={applyFilters}>Search</Button>
+            <Button type="button" variant="outline" onClick={applyFilters}>
+              Search
+            </Button>
           </div>
           <Select value={sourceParam || "__all__"} onValueChange={handleSourceChange}>
             <SelectTrigger className="w-44" aria-label="Filter by source">
@@ -163,7 +168,9 @@ export default function ReadingStream() {
             <SelectContent>
               <SelectItem value="__all__">All sources</SelectItem>
               {enabledFeeds.map((f) => (
-                <SelectItem key={f.id} value={f.id}>{f.shortName}</SelectItem>
+                <SelectItem key={f.id} value={f.id}>
+                  {f.shortName}
+                </SelectItem>
               ))}
             </SelectContent>
           </Select>
@@ -180,7 +187,9 @@ export default function ReadingStream() {
             </SelectContent>
           </Select>
           {(queryParam || sourceParam || statusParam) && (
-            <Button type="button" variant="ghost" onClick={clearFilters}>Clear</Button>
+            <Button type="button" variant="ghost" onClick={clearFilters}>
+              Clear
+            </Button>
           )}
         </div>
       </div>
@@ -194,8 +203,12 @@ export default function ReadingStream() {
       {!loading && filteredEntries.length === 0 ? (
         <EmptyState
           message="No articles found"
-          subMessage={entries.length === 0 ? "Visit a feed to load articles, then return here." : "Try adjusting your filters."}
-          action={{ label: "Browse Feeds", onClick: () => window.location.hash = "#/feeds" }}
+          subMessage={
+            entries.length === 0
+              ? "Visit a feed to load articles, then return here."
+              : "Try adjusting your filters."
+          }
+          action={{ label: "Browse Feeds", onClick: () => (window.location.hash = "#/feeds") }}
         />
       ) : (
         <div className="card divide-y divide-slate-100 px-5">

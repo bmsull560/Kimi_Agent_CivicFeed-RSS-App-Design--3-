@@ -20,7 +20,10 @@ export interface UseUserFeedsResult {
   catalogLoading: boolean;
   catalogError: string | null;
   addFeed: (feed: Omit<Feed, "id" | "status" | "userAdded" | "enabled" | "addedAt">) => boolean;
-  updateFeed: (id: string, updates: Partial<Omit<UserFeed, "id" | "userAdded" | "addedAt">>) => boolean;
+  updateFeed: (
+    id: string,
+    updates: Partial<Omit<UserFeed, "id" | "userAdded" | "addedAt">>
+  ) => boolean;
   removeFeed: (id: string) => void;
   toggleFeedEnabled: (id: string) => void;
   importFeeds: (feeds: UserFeed[]) => void;
@@ -28,7 +31,12 @@ export interface UseUserFeedsResult {
 }
 
 export function useUserFeeds(): UseUserFeedsResult {
-  const { feeds: catalogFeeds, loading: catalogLoading, error: catalogError, refresh: refreshCatalog } = useFeeds();
+  const {
+    feeds: catalogFeeds,
+    loading: catalogLoading,
+    error: catalogError,
+    refresh: refreshCatalog,
+  } = useFeeds();
   const [tick, setTick] = useState(0);
 
   const refresh = useCallback(() => {
@@ -60,7 +68,7 @@ export function useUserFeeds(): UseUserFeedsResult {
       refresh();
       return true;
     },
-    [allFeeds, refresh],
+    [allFeeds, refresh]
   );
 
   const updateFeed = useCallback(
@@ -70,7 +78,7 @@ export function useUserFeeds(): UseUserFeedsResult {
       if (updates.rssUrl) {
         const normalized = normalizeUrl(updates.rssUrl);
         const duplicate = allFeeds.find(
-          (f) => f.id !== id && normalizeUrl(f.rssUrl) === normalized,
+          (f) => f.id !== id && normalizeUrl(f.rssUrl) === normalized
         );
         if (duplicate) {
           alert(`A feed with this URL already exists as "${duplicate.shortName}".`);
@@ -81,7 +89,7 @@ export function useUserFeeds(): UseUserFeedsResult {
       refresh();
       return true;
     },
-    [allFeeds, refresh],
+    [allFeeds, refresh]
   );
 
   const removeFeed = useCallback(
@@ -89,7 +97,7 @@ export function useUserFeeds(): UseUserFeedsResult {
       removeUserFeed(id);
       refresh();
     },
-    [refresh],
+    [refresh]
   );
 
   const toggleFeedEnabled = useCallback(
@@ -99,7 +107,7 @@ export function useUserFeeds(): UseUserFeedsResult {
       setFeedEnabled(id, next);
       refresh();
     },
-    [allFeeds, refresh],
+    [allFeeds, refresh]
   );
 
   const importFeeds = useCallback(
@@ -114,7 +122,7 @@ export function useUserFeeds(): UseUserFeedsResult {
         refresh();
       }
     },
-    [allFeeds, refresh],
+    [allFeeds, refresh]
   );
 
   return {

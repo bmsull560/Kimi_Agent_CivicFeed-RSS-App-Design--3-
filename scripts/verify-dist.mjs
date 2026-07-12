@@ -15,7 +15,7 @@ if (!fs.existsSync(indexPath)) {
 } else {
   const html = fs.readFileSync(indexPath, "utf8");
   if (!html.includes('<div id="root"></div>')) fail("dist/index.html is missing the React root");
-  if (!html.includes("type=\"module\"")) fail("dist/index.html is missing a module script");
+  if (!html.includes('type="module"')) fail("dist/index.html is missing a module script");
 
   const assetRefs = [...html.matchAll(/(?:src|href)="\.\/([^"]+)"/g)].map((match) => match[1]);
   if (assetRefs.length === 0) fail("dist/index.html has no relative asset references");

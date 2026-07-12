@@ -2,7 +2,7 @@
 
 _Elevating the CivicFeed RSS Agent Platform to Google-Scale L8 Engineering Standards_
 
-***
+---
 
 ## 1. Executive Summary & Refactoring Philosophy
 
@@ -29,11 +29,11 @@ To transition this platform from a standard web-scale pipeline to an **L8-level 
 └────────────────────────────────┴────────────────────────────────┘
 ```
 
-* **Runtime Safety**: Standard Python exception structures are inherently fragile in high-throughput async processing. We enforce absolute isolation of execution paths. Generics, strict type-hints, and domain-level error-wrapping classes are mandatory. The usage of `str(e)` is strictly prohibited; all errors must map to strongly typed structured failures.
-* **Architectural Predictability**: Highly concurrent scrapers and multi-tenant agent execution loops must never leak data across tenant boundaries. We leverage Python's `contextvars` to propagate tenant state natively down the async call stack, ensuring database sessions, logging context, and caching mechanisms remain strictly sandboxed.
-* **Interface Segregation**: To scale development across distributed engineering squads, each architectural boundary must be defined by strict schemas. No raw dictionaries or unstructured payloads may pass between the system layers.
+- **Runtime Safety**: Standard Python exception structures are inherently fragile in high-throughput async processing. We enforce absolute isolation of execution paths. Generics, strict type-hints, and domain-level error-wrapping classes are mandatory. The usage of `str(e)` is strictly prohibited; all errors must map to strongly typed structured failures.
+- **Architectural Predictability**: Highly concurrent scrapers and multi-tenant agent execution loops must never leak data across tenant boundaries. We leverage Python's `contextvars` to propagate tenant state natively down the async call stack, ensuring database sessions, logging context, and caching mechanisms remain strictly sandboxed.
+- **Interface Segregation**: To scale development across distributed engineering squads, each architectural boundary must be defined by strict schemas. No raw dictionaries or unstructured payloads may pass between the system layers.
 
-***
+---
 
 ## 2. The 7-Layer CivicFeed RSS Architecture (CivicPact)
 
@@ -83,31 +83,31 @@ Layer 1| RSS Ingestion & Web Scraping (Playwright/Celery)       |
 
 ### Layer-by-Layer Architectural Deep-Dive
 
-| Layer | Layer Name                                    | Core Technologies                                              | Responsibility & Input/Output Contracts                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                       |
-| ----- | --------------------------------------------- | -------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **1** | **RSS Ingestion & Web Scraping**              | Playwright, Celery, Redis, PostgreSQL                          | **Responsibility**: Ingestion of raw RSS and Atom feeds. Orchestrates headless browsers (Playwright) to bypass Cloudflare/paywalls, extracts clean HTML, and buffers raw payloads.  
-**Inputs**: RSS feed URLs, target news seeds.  
-**Outputs**: Standardized JSON payload containing raw feed items and extracted body text.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                          |
-| **2** | **Legislative & News Entity Extraction**      | Pydantic v2, LLM API Providers (Instructor/Structured Outputs) | **Responsibility**: Transformation of raw unstructured article text into schema-validated data models containing civic entities (e.g., Bills, Officials, Lobbyists, Organizations).  
-**Inputs**: Raw HTML text and metadata.  
-**Outputs**: Highly structured, type-checked Pydantic v2 entities.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                               |
-| **3** | **Civic Knowledge Graph & Vector Layer**      | Neo4j, pgvector, Ollama/OpenAI Embeddings                      | **Responsibility**: Resolving references across items. Generates dense embeddings for unstructured passages while mapping structural relationships (e.g., `OFFICIAL` -> `SPONSORS` -> `BILL`). Executes hybrid searches (dense vector + lexical BM25 + Cypher traversal).  
-**Inputs**: Structured Pydantic Entities.  
-**Outputs**: Graph nodes, edges, and dense vector indexes.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                          |
-| **4** | **Agentic Civic Analyst Engine**              | LangGraph, LangChain, State Checkpointers                      | **Responsibility**: State-machine-based analysis. Runs dedicated "Policy Analyst" and "Alert Synthesizer" agents to monitor, digest, and generate policy impact briefs based on the current context.  
-**Inputs**: Query parameters, recent vector search matches.  
-**Outputs**: Dynamic synthetic intelligence summaries and alert recommendations.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                 |
-| **5** | **Truth & Source Verification**               | Official Legislative APIs (e.g., GovInfo, Congress.gov)        | **Responsibility**: Guardrail and validation engine. Cross-references extracted news statements against authoritative legislative databases to verify claims.  
-**Inputs**: Extracted claims and agentic outputs.  
-**Outputs**: `TruthObject` with absolute compliance scores, confidence metrics, and verification source citations.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                       |
-| **6** | **Civic Impact & Benchmark Service**          | Pandas, Polars, Scikit-Learn                                   | **Responsibility**: Analytics and aggregation pipeline. Calculates macro metrics such as legislative momentum, regional sentiment curves, and media coverage velocity indices.  
-**Inputs**: Historically verified entity states and alert logs.  
-**Outputs**: Aggregated trend matrices and JSON schema analytics reports.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                |
-| **7** | **Cross-layer Alert API & Tenant Management** | FastAPI, PostgreSQL, SendGrid, Twilio, Slack Webhooks          | **Responsibility**: System egress and tenant isolator. Dynamically filters alerts against active customer tenant profile scopes. Delivers prioritized briefings to destination integrations.  
-**Inputs**: Synthetic analyst briefs and benchmark triggers.  
-**Outputs**: SMS, Email, Slack/Discord messages, and Webhook payloads.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                              |
+| Layer                                                                                                              | Layer Name                                    | Core Technologies                                              | Responsibility & Input/Output Contracts                                                                                                                                                                                                                                   |
+| ------------------------------------------------------------------------------------------------------------------ | --------------------------------------------- | -------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **1**                                                                                                              | **RSS Ingestion & Web Scraping**              | Playwright, Celery, Redis, PostgreSQL                          | **Responsibility**: Ingestion of raw RSS and Atom feeds. Orchestrates headless browsers (Playwright) to bypass Cloudflare/paywalls, extracts clean HTML, and buffers raw payloads.                                                                                        |
+| **Inputs**: RSS feed URLs, target news seeds.                                                                      |
+| **Outputs**: Standardized JSON payload containing raw feed items and extracted body text.                          |
+| **2**                                                                                                              | **Legislative & News Entity Extraction**      | Pydantic v2, LLM API Providers (Instructor/Structured Outputs) | **Responsibility**: Transformation of raw unstructured article text into schema-validated data models containing civic entities (e.g., Bills, Officials, Lobbyists, Organizations).                                                                                       |
+| **Inputs**: Raw HTML text and metadata.                                                                            |
+| **Outputs**: Highly structured, type-checked Pydantic v2 entities.                                                 |
+| **3**                                                                                                              | **Civic Knowledge Graph & Vector Layer**      | Neo4j, pgvector, Ollama/OpenAI Embeddings                      | **Responsibility**: Resolving references across items. Generates dense embeddings for unstructured passages while mapping structural relationships (e.g., `OFFICIAL` -> `SPONSORS` -> `BILL`). Executes hybrid searches (dense vector + lexical BM25 + Cypher traversal). |
+| **Inputs**: Structured Pydantic Entities.                                                                          |
+| **Outputs**: Graph nodes, edges, and dense vector indexes.                                                         |
+| **4**                                                                                                              | **Agentic Civic Analyst Engine**              | LangGraph, LangChain, State Checkpointers                      | **Responsibility**: State-machine-based analysis. Runs dedicated "Policy Analyst" and "Alert Synthesizer" agents to monitor, digest, and generate policy impact briefs based on the current context.                                                                      |
+| **Inputs**: Query parameters, recent vector search matches.                                                        |
+| **Outputs**: Dynamic synthetic intelligence summaries and alert recommendations.                                   |
+| **5**                                                                                                              | **Truth & Source Verification**               | Official Legislative APIs (e.g., GovInfo, Congress.gov)        | **Responsibility**: Guardrail and validation engine. Cross-references extracted news statements against authoritative legislative databases to verify claims.                                                                                                             |
+| **Inputs**: Extracted claims and agentic outputs.                                                                  |
+| **Outputs**: `TruthObject` with absolute compliance scores, confidence metrics, and verification source citations. |
+| **6**                                                                                                              | **Civic Impact & Benchmark Service**          | Pandas, Polars, Scikit-Learn                                   | **Responsibility**: Analytics and aggregation pipeline. Calculates macro metrics such as legislative momentum, regional sentiment curves, and media coverage velocity indices.                                                                                            |
+| **Inputs**: Historically verified entity states and alert logs.                                                    |
+| **Outputs**: Aggregated trend matrices and JSON schema analytics reports.                                          |
+| **7**                                                                                                              | **Cross-layer Alert API & Tenant Management** | FastAPI, PostgreSQL, SendGrid, Twilio, Slack Webhooks          | **Responsibility**: System egress and tenant isolator. Dynamically filters alerts against active customer tenant profile scopes. Delivers prioritized briefings to destination integrations.                                                                              |
+| **Inputs**: Synthetic analyst briefs and benchmark triggers.                                                       |
+| **Outputs**: SMS, Email, Slack/Discord messages, and Webhook payloads.                                             |
 
-***
+---
 
 ## 3. Monorepo Directory Layout
 
@@ -153,7 +153,7 @@ civicpact-monorepo/
 └── docker-compose.yml          # Local development stack (Redis, Neo4j, pgvector)
 ```
 
-***
+---
 
 ## 4. The Customized 'L8 Principal Engineer' System Prompt
 
@@ -183,7 +183,7 @@ Your output must adhere to the following uncompromising standards:
    - Use async execution patterns for IO-bound work (database connections, scraping, downstream API calls).
 ```
 
-***
+---
 
 ## 5. Sample Code Snippets
 
@@ -370,7 +370,7 @@ class ExtractionEngine:
             # Assume parsing logic executes here...
             if "bill_identifier" not in feed_payload:
                 raise KeyError("bill_identifier is missing from payload data.")
-            
+
             return LegislativeEvent(
                 event_id="evt_0192837",
                 bill_identifier=feed_payload["bill_identifier"],
@@ -382,7 +382,7 @@ class ExtractionEngine:
         except (KeyError, TypeError, ValueError) as err:
             tb_info = sys.exc_info()[2]
             tb_lines = traceback.format_tb(tb_info)
-            
+
             # Map Python standard failures to a structured, traceable error code
             resolved_code = "CF-500-101"
             safe_context = {
@@ -390,7 +390,7 @@ class ExtractionEngine:
                 "exception_class": type(err).__name__,
                 "traceback": tb_lines[-1].strip() if tb_lines else "None"
             }
-            
+
             # Log full details internally
             logger.error(
                 "Failed to parse item. Code: %s, Exception: %s",
@@ -398,7 +398,7 @@ class ExtractionEngine:
                 type(err).__name__,
                 exc_info=True
             )
-            
+
             # Raise domain-wrapped abstraction (Strictly avoiding raw str(e))
             raise RSSIngestionError(
                 error_code=resolved_code,
@@ -472,7 +472,7 @@ async def test_tenant_missing_context_throws_safe_exception() -> None:
     """Asserts that queries executed without an active tenant context are rejected."""
     with pytest.raises(TenantContextError) as exc_info:
         _ = get_current_tenant_id()
-    
+
     assert "Database operation attempted without an active tenant context." in str(exc_info.value)
 
 

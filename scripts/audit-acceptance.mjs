@@ -43,7 +43,8 @@ for (const route of requiredRoutes) {
 }
 
 if (feeds.length < 505) fail(`expected 505+ feeds in backend catalog, found ${feeds.length}`);
-if (feedStats.total !== feeds.length) fail(`feedStats.total must equal feeds.length (${feeds.length})`);
+if (feedStats.total !== feeds.length)
+  fail(`feedStats.total must equal feeds.length (${feeds.length})`);
 
 const workingCount = feeds.filter((feed) => feed.status === "working").length;
 if (workingCount < 505) {
@@ -52,8 +53,10 @@ if (workingCount < 505) {
 
 const categories = new Set(categoryList);
 for (const feed of feeds) {
-  if (!categories.has(feed.category)) fail(`${feed.id} category is not filterable via categoryList: ${feed.category}`);
-  if (!feed.name || !feed.shortName || !feed.agency || !feed.description) fail(`${feed.id} is missing display/search metadata`);
+  if (!categories.has(feed.category))
+    fail(`${feed.id} category is not filterable via categoryList: ${feed.category}`);
+  if (!feed.name || !feed.shortName || !feed.agency || !feed.description)
+    fail(`${feed.id} is missing display/search metadata`);
 }
 
 // Architectural consolidation invariants.
@@ -75,7 +78,8 @@ if (hookSource.includes("setCachedFeed") || hookSource.includes("allowStale")) {
 
 // Backend parser must exist as the consolidated parser.
 const parserPath = path.join(root, "backend", "src", "rss-parser.ts");
-if (!fs.existsSync(parserPath)) fail("backend/src/rss-parser.ts is missing; parsing must live in the backend");
+if (!fs.existsSync(parserPath))
+  fail("backend/src/rss-parser.ts is missing; parsing must live in the backend");
 const parserSource = fs.readFileSync(parserPath, "utf8");
 if (!parserSource.includes("export function parseRssXml")) {
   fail("backend rss-parser.ts must export parseRssXml");
@@ -89,7 +93,8 @@ const removedPaths = [
   "scripts/verify-backend-catalog-sync.mjs",
 ];
 for (const removed of removedPaths) {
-  if (fs.existsSync(path.join(root, removed))) fail(`legacy file should have been removed: ${removed}`);
+  if (fs.existsSync(path.join(root, removed)))
+    fail(`legacy file should have been removed: ${removed}`);
 }
 
 if (failures.length > 0) {

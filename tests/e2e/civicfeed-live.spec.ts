@@ -6,8 +6,7 @@ async function collectRuntimeErrors(page: Page) {
   page.on("console", (message) => {
     const text = message.text();
     const isExpectedNetworkDiagnostic =
-      text.startsWith("Failed to load resource:") ||
-      text.includes("Cross-Origin Request Blocked:");
+      text.startsWith("Failed to load resource:") || text.includes("Cross-Origin Request Blocked:");
     if (message.type() === "error" && !isExpectedNetworkDiagnostic) errors.push(`console: ${text}`);
   });
   return errors;
@@ -18,7 +17,10 @@ test("live backend: user can open a feed and read entries from the backend", asy
 
   await page.goto("/#/feeds");
   await page.waitForResponse((res) => res.url().includes("/api/feeds") && res.status() === 200);
-  await page.getByRole("button", { name: /Live Test/i }).first().click();
+  await page
+    .getByRole("button", { name: /Live Test/i })
+    .first()
+    .click();
   await expect(page.getByRole("heading", { name: "Live Test" })).toBeVisible();
   await expect(page.getByText("Live Test Entry", { exact: true })).toBeVisible();
   await expect(page.getByText("Second Live Test Entry", { exact: true })).toBeVisible();

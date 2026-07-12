@@ -19,7 +19,11 @@ const discoveredUrlsById = new Map();
 for (const result of results) {
   if (!result?.id || !["working", "blocked"].includes(result.status)) continue;
   statusesById.set(result.id, result.status);
-  if (result.status === "working" && result.discoveredUrl && result.discoveredUrl !== result.rssUrl) {
+  if (
+    result.status === "working" &&
+    result.discoveredUrl &&
+    result.discoveredUrl !== result.rssUrl
+  ) {
     discoveredUrlsById.set(result.id, result.discoveredUrl);
   }
 }
@@ -35,7 +39,10 @@ let changed = 0;
 source = source.replace(/\{id:"(feed-\d{3})"[\s\S]*?\},/g, (feedLiteral, id) => {
   const nextStatus = statusesById.get(id);
   if (!nextStatus) return feedLiteral;
-  let updated = feedLiteral.replace(/status:"(?:working|blocked|unverified)" as const/, `status:"${nextStatus}" as const`);
+  let updated = feedLiteral.replace(
+    /status:"(?:working|blocked|unverified)" as const/,
+    `status:"${nextStatus}" as const`
+  );
   const discoveredUrl = discoveredUrlsById.get(id);
   if (discoveredUrl) {
     updated = updated.replace(/rssUrl:"[^"]+"/, `rssUrl:"${discoveredUrl.replaceAll('"', "%22")}"`);
@@ -51,7 +58,7 @@ for (const match of source.matchAll(/status:"(working|blocked|unverified)" as co
 
 source = source.replace(
   /byStatus: \{ unverified: \d+, working: \d+, blocked: \d+ \}/,
-  `byStatus: { unverified: ${statusCounts.unverified}, working: ${statusCounts.working}, blocked: ${statusCounts.blocked} }`,
+  `byStatus: { unverified: ${statusCounts.unverified}, working: ${statusCounts.working}, blocked: ${statusCounts.blocked} }`
 );
 
 fs.writeFileSync(feedsPath, source);

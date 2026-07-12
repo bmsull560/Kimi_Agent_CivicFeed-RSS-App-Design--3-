@@ -47,83 +47,122 @@ function makeArticles(feedId: string, feedName: string, title: string, entryId: 
 
 async function collectRuntimeErrors(page: Page) {
   const errors: string[] = [];
-  page.on("pageerror", error => errors.push(`pageerror: ${error.message}`));
-  page.on("console", message => {
+  page.on("pageerror", (error) => errors.push(`pageerror: ${error.message}`));
+  page.on("console", (message) => {
     const text = message.text();
     const isExpectedNetworkDiagnostic =
-      text.startsWith("Failed to load resource:") ||
-      text.includes("Cross-Origin Request Blocked:");
+      text.startsWith("Failed to load resource:") || text.includes("Cross-Origin Request Blocked:");
     if (message.type() === "error" && !isExpectedNetworkDiagnostic) errors.push(`console: ${text}`);
   });
   return errors;
 }
 
 async function blockExternalRssAndProxies(page: Page) {
-  await page.route(/https?:\/\/(www\.)?trade\.gov\/rss\.xml/, route => route.abort("internetdisconnected"));
-  await page.route(/api\.allorigins\.win|api\.codetabs\.com|corsproxy\.io/, route => route.abort("internetdisconnected"));
+  await page.route(/https?:\/\/(www\.)?trade\.gov\/rss\.xml/, (route) =>
+    route.abort("internetdisconnected")
+  );
+  await page.route(/api\.allorigins\.win|api\.codetabs\.com|corsproxy\.io/, (route) =>
+    route.abort("internetdisconnected")
+  );
 }
 
 async function mockBackendBasics(page: Page) {
   await blockExternalRssAndProxies(page);
-  await page.route("**/api/feeds", route =>
+  await page.route("**/api/feeds", (route) =>
     route.fulfill({
       status: 200,
       contentType: "application/json",
       body: JSON.stringify(makeCatalog()),
-    }),
+    })
   );
-  await page.route("**/api/articles/recent*", route =>
+  await page.route("**/api/articles/recent*", (route) =>
     route.fulfill({
       status: 200,
       contentType: "application/json",
       body: JSON.stringify({ results: [] }),
-    }),
+    })
   );
-  await page.route("**/api/stats/feeds", route =>
+  await page.route("**/api/stats/feeds", (route) =>
     route.fulfill({
       status: 200,
       contentType: "application/json",
-      body: JSON.stringify({ totalFeeds: 1, workingFeeds: 1, feedsWithStatus: 0, feedsWithRecentError: 0, staleFeeds: 0 }),
-    }),
+      body: JSON.stringify({
+        totalFeeds: 1,
+        workingFeeds: 1,
+        feedsWithStatus: 0,
+        feedsWithRecentError: 0,
+        staleFeeds: 0,
+      }),
+    })
   );
 }
 
-async function mockDiscover(page: Page, inputUrl: string, discoveredFeeds: { href: string; type: string; title: string }[]) {
-  await page.route(url => url.toString().includes(`/api/discover?url=${encodeURIComponent(inputUrl)}`), route =>
-    route.fulfill({
-      status: 200,
-      contentType: "application/json",
-      body: JSON.stringify({ feeds: discoveredFeeds }),
-    }),
+async function mockDiscover(
+  page: Page,
+  inputUrl: string,
+  discoveredFeeds: { href: string; type: string; title: string }[]
+) {
+  await page.route(
+    (url) => url.toString().includes(`/api/discover?url=${encodeURIComponent(inputUrl)}`),
+    (route) =>
+      route.fulfill({
+        status: 200,
+        contentType: "application/json",
+        body: JSON.stringify({ feeds: discoveredFeeds }),
+      })
   );
 }
 
-async function mockFeedArticles(page: Page, feedId: string, feedName: string, title: string, entryId: string) {
-  await page.route(`**/api/feeds/${feedId}/articles`, route =>
+async function mockFeedArticles(
+  page: Page,
+  feedId: string,
+  feedName: string,
+  title: string,
+  entryId: string
+) {
+  await page.route(`**/api/feeds/${feedId}/articles`, (route) =>
     route.fulfill({
       status: 200,
       contentType: "application/json",
       body: JSON.stringify(makeArticles(feedId, feedName, title, entryId)),
-    }),
+    })
   );
 }
 
 async function addUserFeed(
   page: Page,
-  { name, url, discoverUrl, discovered }: { name: string; url: string; discoverUrl?: string; discovered?: { href: string; type: string; title: string }[] },
+  {
+    name,
+    url,
+    discoverUrl,
+    discovered,
+  }: {
+    name: string;
+    url: string;
+    discoverUrl?: string;
+    discovered?: { href: string; type: string; title: string }[];
+  }
 ) {
   if (discoverUrl && discovered) {
     await mockDiscover(page, discoverUrl, discovered);
   }
-  await mockDiscover(page, url, discovered ?? [{ href: url, type: "application/rss+xml", title: name }]);
+  await mockDiscover(
+    page,
+    url,
+    discovered ?? [{ href: url, type: "application/rss+xml", title: name }]
+  );
 
   await page.goto("/#/feeds");
   await page.getByRole("button", { name: "Add Feed" }).click();
   await page.getByLabel("Name").fill(name);
-  await page.getByPlaceholder("https://example.com/feed.xml or https://example.com").fill(discoverUrl ?? url);
+  await page
+    .getByPlaceholder("https://example.com/feed.xml or https://example.com")
+    .fill(discoverUrl ?? url);
   if (discoverUrl && discovered) {
     await page.getByRole("button", { name: "Discover" }).click();
-    await page.getByRole("button", { name: new RegExp(`Select feed ${discovered[0].title}`) }).click();
+    await page
+      .getByRole("button", { name: new RegExp(`Select feed ${discovered[0].title}`) })
+      .click();
   }
   await page.getByRole("dialog").getByRole("button", { name: "Add Feed" }).click();
 }
@@ -138,7 +177,9 @@ function stableFeedId(input: string): string {
   return `user-${Math.abs(hash).toString(36)}`;
 }
 
-test("first launch shows a useful feed with a clear empty-state fallback", async ({ page }, testInfo) => {
+test("first launch shows a useful feed with a clear empty-state fallback", async ({
+  page,
+}, testInfo) => {
   test.skip(testInfo.project.name.includes("mobile"), "desktop-only path");
   const runtimeErrors = await collectRuntimeErrors(page);
   await mockBackendBasics(page);
@@ -158,7 +199,7 @@ test("user adds a valid RSS feed and its articles appear", async ({ page }, test
   const feedUrl = "https://example.com/test-feed.xml";
   const feedId = stableFeedId(feedUrl);
   await mockFeedArticles(page, feedId, "My Test Feed", "Added Feed Entry", "browser-test-entry");
-  await page.route("**/api/articles/recent*", route =>
+  await page.route("**/api/articles/recent*", (route) =>
     route.fulfill({
       status: 200,
       contentType: "application/json",
@@ -176,7 +217,7 @@ test("user adds a valid RSS feed and its articles appear", async ({ page }, test
           },
         ],
       }),
-    }),
+    })
   );
 
   await addUserFeed(page, { name: "My Test Feed", url: feedUrl });
@@ -229,14 +270,26 @@ test("user discovers a feed from a website URL", async ({ page }, testInfo) => {
 
   const discoveredUrl = "https://example.com/discovered.xml";
   const discoveredFeedId = stableFeedId(discoveredUrl);
-  await mockDiscover(page, "https://example.com/news", [{ href: discoveredUrl, type: "application/rss+xml", title: "Discovered Feed" }]);
-  await mockDiscover(page, discoveredUrl, [{ href: discoveredUrl, type: "application/rss+xml", title: "Discovered Feed" }]);
-  await mockFeedArticles(page, discoveredFeedId, "Discovered Test Feed", "Discovered Entry", "discovered-entry");
+  await mockDiscover(page, "https://example.com/news", [
+    { href: discoveredUrl, type: "application/rss+xml", title: "Discovered Feed" },
+  ]);
+  await mockDiscover(page, discoveredUrl, [
+    { href: discoveredUrl, type: "application/rss+xml", title: "Discovered Feed" },
+  ]);
+  await mockFeedArticles(
+    page,
+    discoveredFeedId,
+    "Discovered Test Feed",
+    "Discovered Entry",
+    "discovered-entry"
+  );
 
   await page.goto("/#/feeds");
   await page.getByRole("button", { name: "Add Feed" }).click();
   await page.getByLabel("Name").fill("Discovered Test Feed");
-  await page.getByPlaceholder("https://example.com/feed.xml or https://example.com").fill("https://example.com/news");
+  await page
+    .getByPlaceholder("https://example.com/feed.xml or https://example.com")
+    .fill("https://example.com/news");
 
   await page.getByRole("button", { name: "Discover" }).click();
   await page.getByRole("button", { name: /Select feed Discovered Feed/i }).click();
@@ -265,16 +318,22 @@ test("invalid or unreachable feed produces an actionable error", async ({ page }
   await page.getByPlaceholder("https://example.com/feed.xml or https://example.com").fill(badUrl);
   await page.getByRole("dialog").getByRole("button", { name: "Add Feed" }).click();
 
-  await expect(page.getByText(/Could not fetch|No entries found|valid feed|valid HTTP|RSS URL is required|No RSS or Atom feeds found/i)).toBeVisible();
+  await expect(
+    page.getByText(
+      /Could not fetch|No entries found|valid feed|valid HTTP|RSS URL is required|No RSS or Atom feeds found/i
+    )
+  ).toBeVisible();
   expect(runtimeErrors).toEqual([]);
 });
 
-test("feed detail shows backend fetch diagnostics for a failing feed", async ({ page }, testInfo) => {
+test("feed detail shows backend fetch diagnostics for a failing feed", async ({
+  page,
+}, testInfo) => {
   test.skip(testInfo.project.name.includes("mobile"), "desktop-only path");
   const runtimeErrors = await collectRuntimeErrors(page);
   await mockBackendBasics(page);
 
-  await page.route("**/api/feeds/feed-001/status", route =>
+  await page.route("**/api/feeds/feed-001/status", (route) =>
     route.fulfill({
       status: 200,
       contentType: "application/json",
@@ -288,9 +347,9 @@ test("feed detail shows backend fetch diagnostics for a failing feed", async ({ 
         failureCount: 3,
         nextFetchAt: Date.now() + 5 * 60 * 1000,
       }),
-    }),
+    })
   );
-  await page.route("**/api/feeds/feed-001/health", route =>
+  await page.route("**/api/feeds/feed-001/health", (route) =>
     route.fulfill({
       status: 200,
       contentType: "application/json",
@@ -311,7 +370,7 @@ test("feed detail shows backend fetch diagnostics for a failing feed", async ({ 
         lastValidatedAt: Date.now(),
         error: "HTTP 500",
       }),
-    }),
+    })
   );
 
   await page.goto("/#/feeds");
@@ -346,7 +405,7 @@ test("user searches for an article", async ({ page }, testInfo) => {
   const runtimeErrors = await collectRuntimeErrors(page);
   await mockBackendBasics(page);
 
-  await page.route("**/api/search?q=*", route =>
+  await page.route("**/api/search?q=*", (route) =>
     route.fulfill({
       status: 200,
       contentType: "application/json",
@@ -366,7 +425,7 @@ test("user searches for an article", async ({ page }, testInfo) => {
         ],
         total: 1,
       }),
-    }),
+    })
   );
 
   await page.goto("/#/search?q=Searchable");
@@ -379,12 +438,12 @@ test("search shows an error when the backend is unavailable", async ({ page }, t
   const runtimeErrors = await collectRuntimeErrors(page);
   await mockBackendBasics(page);
 
-  await page.route("**/api/search?q=*", route =>
+  await page.route("**/api/search?q=*", (route) =>
     route.fulfill({
       status: 503,
       contentType: "application/json",
       body: JSON.stringify({ error: "Backend not available in tests" }),
-    }),
+    })
   );
 
   await page.goto("/#/search?q=Searchable");
@@ -398,7 +457,7 @@ test("user bookmarks and marks an article as read", async ({ page }, testInfo) =
   const runtimeErrors = await collectRuntimeErrors(page);
   await mockBackendBasics(page);
 
-  await page.route("**/api/articles/recent*", route =>
+  await page.route("**/api/articles/recent*", (route) =>
     route.fulfill({
       status: 200,
       contentType: "application/json",
@@ -416,7 +475,7 @@ test("user bookmarks and marks an article as read", async ({ page }, testInfo) =
           },
         ],
       }),
-    }),
+    })
   );
 
   await page.goto("/#/reading");
@@ -433,7 +492,7 @@ test("state persists after reload", async ({ page }, testInfo) => {
   const runtimeErrors = await collectRuntimeErrors(page);
   await mockBackendBasics(page);
 
-  await page.route("**/api/articles/recent*", route =>
+  await page.route("**/api/articles/recent*", (route) =>
     route.fulfill({
       status: 200,
       contentType: "application/json",
@@ -451,7 +510,7 @@ test("state persists after reload", async ({ page }, testInfo) => {
           },
         ],
       }),
-    }),
+    })
   );
 
   await page.goto("/#/reading");
@@ -475,12 +534,20 @@ test("user edits and removes a feed", async ({ page }, testInfo) => {
 
   await page.getByRole("button", { name: "Grid view" }).click();
 
-  await page.locator(".card-hover").filter({ hasText: "Feed To Edit" }).getByTestId("edit-feed").click();
+  await page
+    .locator(".card-hover")
+    .filter({ hasText: "Feed To Edit" })
+    .getByTestId("edit-feed")
+    .click();
   await page.getByLabel("Name").fill("Edited Feed Name");
   await page.getByRole("button", { name: "Save Changes" }).click();
   await expect(page.getByText("Edited Feed Name")).toBeVisible();
 
-  await page.locator(".card-hover").filter({ hasText: "Edited Feed Name" }).getByTestId("remove-feed").click();
+  await page
+    .locator(".card-hover")
+    .filter({ hasText: "Edited Feed Name" })
+    .getByTestId("remove-feed")
+    .click();
   await expect(page.getByText("Edited Feed Name")).not.toBeVisible();
   expect(runtimeErrors).toEqual([]);
 });
@@ -574,7 +641,9 @@ test("feed-provided unsafe markup is not executed", async ({ page }, testInfo) =
 
   const unsafeUrl = "https://example.com/unsafe-feed.xml";
   const unsafeFeedId = stableFeedId(unsafeUrl);
-  await mockDiscover(page, unsafeUrl, [{ href: unsafeUrl, type: "application/rss+xml", title: "Unsafe Feed" }]);
+  await mockDiscover(page, unsafeUrl, [
+    { href: unsafeUrl, type: "application/rss+xml", title: "Unsafe Feed" },
+  ]);
   await mockFeedArticles(page, unsafeFeedId, "Unsafe Feed", "Unsafe Entry", "unsafe-entry");
 
   const executed = await page.evaluate(() => {
@@ -585,7 +654,9 @@ test("feed-provided unsafe markup is not executed", async ({ page }, testInfo) =
   await page.goto("/#/feeds");
   await page.getByRole("button", { name: "Add Feed" }).click();
   await page.getByLabel("Name").fill("Unsafe Feed");
-  await page.getByPlaceholder("https://example.com/feed.xml or https://example.com").fill(unsafeUrl);
+  await page
+    .getByPlaceholder("https://example.com/feed.xml or https://example.com")
+    .fill(unsafeUrl);
   await page.getByRole("dialog").getByRole("button", { name: "Add Feed" }).click();
 
   await expect(page.getByText("Unsafe Feed")).toBeVisible({ timeout: 20_000 });
@@ -599,17 +670,19 @@ test("feed-provided unsafe markup is not executed", async ({ page }, testInfo) =
   expect(runtimeErrors).toEqual([]);
 });
 
-test("weekly recap shows a graceful empty state when backend is unavailable", async ({ page }, testInfo) => {
+test("weekly recap shows a graceful empty state when backend is unavailable", async ({
+  page,
+}, testInfo) => {
   test.skip(testInfo.project.name.includes("mobile"), "desktop-only path");
   const runtimeErrors = await collectRuntimeErrors(page);
   await mockBackendBasics(page);
 
-  await page.route("**/api/recap", route =>
+  await page.route("**/api/recap", (route) =>
     route.fulfill({
       status: 503,
       contentType: "application/json",
       body: JSON.stringify({ error: "Backend not available in tests" }),
-    }),
+    })
   );
 
   await page.goto("/#/recap");

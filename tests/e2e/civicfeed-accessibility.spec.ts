@@ -43,42 +43,75 @@ function makeCatalog() {
 }
 
 async function mockBackendForAccessibility(page: import("@playwright/test").Page) {
-  await page.route("**/api/feeds", route =>
-    route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify(makeCatalog()) }),
-  );
-  await page.route("**/api/articles/recent*", route =>
-    route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify({ results: [] }) }),
-  );
-  await page.route("**/api/stats/feeds", route =>
+  await page.route("**/api/feeds", (route) =>
     route.fulfill({
       status: 200,
       contentType: "application/json",
-      body: JSON.stringify({ totalFeeds: 1, workingFeeds: 1, feedsWithStatus: 0, feedsWithRecentError: 0, staleFeeds: 0 }),
-    }),
+      body: JSON.stringify(makeCatalog()),
+    })
   );
-  await page.route("**/api/search*", route =>
-    route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify({ query: "", results: [], total: 0 }) }),
-  );
-  await page.route("**/api/recap", route =>
+  await page.route("**/api/articles/recent*", (route) =>
     route.fulfill({
       status: 200,
       contentType: "application/json",
-      body: JSON.stringify({ startDate: new Date().toISOString(), endDate: new Date().toISOString(), totalArticles: 0, categories: [], topTags: [] }),
-    }),
+      body: JSON.stringify({ results: [] }),
+    })
   );
-  await page.route("**/api/articles/by-ids", route =>
-    route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify({ results: [] }) }),
+  await page.route("**/api/stats/feeds", (route) =>
+    route.fulfill({
+      status: 200,
+      contentType: "application/json",
+      body: JSON.stringify({
+        totalFeeds: 1,
+        workingFeeds: 1,
+        feedsWithStatus: 0,
+        feedsWithRecentError: 0,
+        staleFeeds: 0,
+      }),
+    })
+  );
+  await page.route("**/api/search*", (route) =>
+    route.fulfill({
+      status: 200,
+      contentType: "application/json",
+      body: JSON.stringify({ query: "", results: [], total: 0 }),
+    })
+  );
+  await page.route("**/api/recap", (route) =>
+    route.fulfill({
+      status: 200,
+      contentType: "application/json",
+      body: JSON.stringify({
+        startDate: new Date().toISOString(),
+        endDate: new Date().toISOString(),
+        totalArticles: 0,
+        categories: [],
+        topTags: [],
+      }),
+    })
+  );
+  await page.route("**/api/articles/by-ids", (route) =>
+    route.fulfill({
+      status: 200,
+      contentType: "application/json",
+      body: JSON.stringify({ results: [] }),
+    })
   );
 }
 
 for (const { path, name } of pages) {
   test.describe(`${name} accessibility`, () => {
-    test(`should not have automatically detectable a11y violations on ${name}`, async ({ page }) => {
+    test(`should not have automatically detectable a11y violations on ${name}`, async ({
+      page,
+    }) => {
       test.setTimeout(120_000);
       await mockBackendForAccessibility(page);
       await page.goto(path);
       // Wait for the main content to render before scanning.
-      await page.locator("main, [role=main], #root").first().waitFor({ state: "visible", timeout: 5000 });
+      await page
+        .locator("main, [role=main], #root")
+        .first()
+        .waitFor({ state: "visible", timeout: 5000 });
 
       const accessibilityScanResults = await new AxeBuilder({ page })
         .withTags(["wcag2a", "wcag2aa", "wcag21aa"])

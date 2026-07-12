@@ -4830,9 +4830,7 @@
     "lastValidatedAt": 1780764487954
   },
   "feed-067": {
-    "guids": [
-      "https://www.ca4.uscourts.gov/cal/calchange2026May4.pdf"
-    ],
+    "guids": ["https://www.ca4.uscourts.gov/cal/calchange2026May4.pdf"],
     "lastValidatedAt": 1780692576510
   },
   "feed-065": {
@@ -5156,9 +5154,7 @@
     "lastValidatedAt": 1780692576684
   },
   "feed-069": {
-    "guids": [
-      "https://ecf.ca8.uscourts.gov/opndir/26/06/251567U.pdf"
-    ],
+    "guids": ["https://ecf.ca8.uscourts.gov/opndir/26/06/251567U.pdf"],
     "lastValidatedAt": 1780692577362
   },
   "feed-078": {

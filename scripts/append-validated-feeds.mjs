@@ -68,10 +68,16 @@ function tags(values) {
 function govinfoCategory(title, url) {
   const value = `${title} ${url}`.toLowerCase();
   if (value.includes("uscourts")) return "Courts & Judiciary";
-  if (value.includes("federal register") || value.includes("regulations") || value.includes("cfr")) return "Rulemaking & Regulations";
+  if (value.includes("federal register") || value.includes("regulations") || value.includes("cfr"))
+    return "Rulemaking & Regulations";
   if (value.includes("economic") || value.includes("budget")) return "Finance & Economy";
   if (value.includes("gao")) return "Oversight & Audits";
-  if (value.includes("public papers") || value.includes("presidential") || value.includes("daily compilation")) return "Executive & Press";
+  if (
+    value.includes("public papers") ||
+    value.includes("presidential") ||
+    value.includes("daily compilation")
+  )
+    return "Executive & Press";
   return "Congress & Legislation";
 }
 
@@ -90,16 +96,24 @@ function govinfoFeed(entry) {
     department: "GPO",
     category,
     subCategory,
-    contentType: category === "Courts & Judiciary" ? "Court document feed" : "Government document feed",
+    contentType:
+      category === "Courts & Judiciary" ? "Court document feed" : "Government document feed",
     updateFrequency: "",
     status: "working",
     priority: category === "Oversight & Audits" ? 6 : undefined,
-    tags: tags([category, "gpo", "govinfo", category === "Courts & Judiciary" ? "courts" : "documents"]),
+    tags: tags([
+      category,
+      "gpo",
+      "govinfo",
+      category === "Courts & Judiciary" ? "courts" : "documents",
+    ]),
   };
 }
 
 function dvidsFeed(entry) {
-  const unit = clean(String(entry.title ?? "").replace(/^DVIDS Unit RSS Feed:\s*/i, "")) || `DVIDS Unit ${entry.id}`;
+  const unit =
+    clean(String(entry.title ?? "").replace(/^DVIDS Unit RSS Feed:\s*/i, "")) ||
+    `DVIDS Unit ${entry.id}`;
   return {
     name: `${unit} Updates`,
     shortName: shortName(unit),
@@ -144,10 +158,7 @@ const dvidsAdditions = dvidsPath
   ? uniqueWorking(loadJson(dvidsPath), dvidsFeed, Math.min(dvidsLimit, remainingNeeded))
   : [];
 
-const additions = [
-  ...govinfoAdditions,
-  ...dvidsAdditions,
-];
+const additions = [...govinfoAdditions, ...dvidsAdditions];
 
 let nextId = feeds.length + 1;
 const renderedAdditions = additions.map((feed) => {
@@ -157,7 +168,13 @@ const renderedAdditions = additions.map((feed) => {
   return `  {id:${jsString(id)},name:${jsString(feed.name)},shortName:${jsString(feed.shortName)},agency:${jsString(feed.agency)},description:${jsString(feed.description)},rssUrl:${jsString(feed.rssUrl)},website:${jsString(feed.website)},department:${jsString(feed.department)},category:${jsString(feed.category)},subCategory:${jsString(feed.subCategory)},contentType:${jsString(feed.contentType)},updateFrequency:${jsString(feed.updateFrequency)},status:"working" as const${priority},tags:${renderedTags}},`;
 });
 
-const allFeeds = [...feeds, ...additions.map((feed, offset) => ({ ...feed, id: `feed-${String(feeds.length + offset + 1).padStart(3, "0")}` }))];
+const allFeeds = [
+  ...feeds,
+  ...additions.map((feed, offset) => ({
+    ...feed,
+    id: `feed-${String(feeds.length + offset + 1).padStart(3, "0")}`,
+  })),
+];
 const byCategory = Object.fromEntries(categoryList.map((category) => [category, 0]));
 const byStatus = { unverified: 0, working: 0, blocked: 0 };
 for (const feed of allFeeds) {
@@ -171,11 +188,22 @@ if (renderedAdditions.length > 0) {
   if (!feedArrayEnd.test(source)) {
     throw new Error("Could not locate feeds array terminator before feedStats.");
   }
-  updated = updated.replace(feedArrayEnd, `\n\n  // --- VALIDATED FEDERAL DOCUMENT AND MILITARY MEDIA FEEDS ---\n${renderedAdditions.join("\n")}\n];\n\nexport const feedStats = `);
+  updated = updated.replace(
+    feedArrayEnd,
+    `\n\n  // --- VALIDATED FEDERAL DOCUMENT AND MILITARY MEDIA FEEDS ---\n${renderedAdditions.join("\n")}\n];\n\nexport const feedStats = `
+  );
 }
 updated = updated.replace(/total: \d+,/, `total: ${allFeeds.length},`);
-updated = updated.replace(/byCategory: \{[\s\S]*?\r?\n\s*\},\r?\n\s*byStatus:/, `byCategory: {\n${categoryList.map((category) => `    ${jsString(category)}: ${byCategory[category]},`).join("\n")}\n  },\n  byStatus:`);
-updated = updated.replace(/byStatus: \{[^}]+ \}/, `byStatus: { unverified: ${byStatus.unverified}, working: ${byStatus.working}, blocked: ${byStatus.blocked} }`);
+updated = updated.replace(
+  /byCategory: \{[\s\S]*?\r?\n\s*\},\r?\n\s*byStatus:/,
+  `byCategory: {\n${categoryList.map((category) => `    ${jsString(category)}: ${byCategory[category]},`).join("\n")}\n  },\n  byStatus:`
+);
+updated = updated.replace(
+  /byStatus: \{[^}]+ \}/,
+  `byStatus: { unverified: ${byStatus.unverified}, working: ${byStatus.working}, blocked: ${byStatus.blocked} }`
+);
 
 fs.writeFileSync(feedsPath, updated);
-console.log(`Appended ${additions.length} validated feeds. Working feeds: ${byStatus.working}/${allFeeds.length}.`);
+console.log(
+  `Appended ${additions.length} validated feeds. Working feeds: ${byStatus.working}/${allFeeds.length}.`
+);
