@@ -3,12 +3,15 @@ import cors from "cors";
 import { db } from "./db.js";
 import { fetchFeed } from "./rss.js";
 import { getCachedArticles, saveArticles } from "./cache.js";
-import { enrichArticle } from "./ai.js";
-import { searchArticles, getRecentArticles } from "./search.js";
+import { getCachedEnrichment } from "./ai.js";
+import { enqueueArticleEnrichment } from "./enrichment-queue.js";
+import { searchArticles, getRecentArticles, parseTags } from "./search.js";
 import { generateRecap } from "./recap.js";
 import { logger } from "./logger.js";
 import { startFeedRefreshScheduler } from "./scheduler.js";
 import { discoverFeeds } from "./discovery.js";
+import { validateFeedHealth, type FeedHealth } from "./feed-health.js";
+import { feeds, type Feed } from "./feeds.js";
 
 export const app = express();
 const PORT = process.env.PORT || 4000;
@@ -83,8 +86,20 @@ app.get("/api/feeds", (_req, res) => {
     updateFrequency: r.update_frequency,
     status: r.status,
     tags: JSON.parse(r.tags),
+    healthStatus: r.health_status,
+    healthCheckedAt: r.health_checked_at,
+    healthError: r.health_error,
   }));
-  res.json({ feeds });
+
+  const categories = new Set<string>();
+  for (const feed of feeds) categories.add(feed.category);
+  const categoryList = [...categories].sort();
+
+  const totalFeeds = feeds.length;
+  const workingFeeds = feeds.filter((f) => f.status === "working").length;
+  const feedStats = { total: totalFeeds, working: workingFeeds, categories: categoryList.length };
+
+  res.json({ feeds, categoryList, feedStats });
 });
 
 // Get single feed
@@ -106,6 +121,9 @@ app.get("/api/feeds/:id", (req, res) => {
     updateFrequency: row.update_frequency,
     status: row.status,
     tags: JSON.parse(row.tags),
+    healthStatus: row.health_status,
+    healthCheckedAt: row.health_checked_at,
+    healthError: row.health_error,
   });
 });
 
@@ -141,7 +159,34 @@ app.get("/api/feeds/:id/status", (req, res) => {
   res.json(status);
 });
 
-// Get articles for a feed (with caching + AI enrichment)
+// Get feed health
+app.get("/api/feeds/:id/health", async (req, res) => {
+  const feedId = req.params.id;
+  const feedRow = db.prepare("SELECT * FROM feeds WHERE id = ?").get(feedId) as any;
+  if (!feedRow) return res.status(404).json({ error: "Feed not found" });
+
+  const feed: Feed = {
+    id: feedRow.id,
+    name: feedRow.name,
+    shortName: feedRow.short_name,
+    agency: feedRow.agency,
+    description: feedRow.description,
+    rssUrl: feedRow.rss_url,
+    website: feedRow.website,
+    department: feedRow.department,
+    category: feedRow.category,
+    subCategory: feedRow.sub_category,
+    contentType: feedRow.content_type,
+    updateFrequency: feedRow.update_frequency,
+    status: feedRow.status,
+    tags: JSON.parse(feedRow.tags),
+  };
+
+  const health = await validateFeedHealth(feed);
+  res.json(health);
+});
+
+// Get articles for a feed (backend cache + async AI enrichment queue)
 app.get("/api/feeds/:id/articles", async (req, res) => {
   const feedId = req.params.id;
 
@@ -177,18 +222,23 @@ app.get("/api/feeds/:id/articles", async (req, res) => {
     saveArticles(feedId, result.entries);
   }
 
-  // Enrich each entry with summary + tags
-  const enrichedEntries = await Promise.all(
-    entries.map(async (entry) => {
-      const enrichment = await enrichArticle(entry.id, feedId, entry.title, entry.description);
-      return {
-        ...entry,
-        aiSummary: enrichment.summary,
-        aiSummarySource: enrichment.summarySource,
-        aiTags: enrichment.tags,
-      };
-    })
-  );
+  // Attach cached enrichments and queue missing ones for background processing.
+  const enrichedEntries = entries.map((entry) => {
+    const enrichment = getCachedEnrichment(entry.id);
+    if (!enrichment) {
+      enqueueArticleEnrichment(entry.id, feedId, entry.title, entry.description);
+    }
+    return {
+      ...entry,
+      aiSummary: enrichment?.summary,
+      aiSummarySource: enrichment?.summarySource,
+      aiTags: enrichment?.tags,
+    };
+  });
+
+  const etag = `"feed-${feedId}-${entries[0]?.fetchedAt ?? 0}"`;
+  res.setHeader("ETag", etag);
+  res.setHeader("Cache-Control", "private, must-revalidate, max-age=60");
 
   res.json({
     entries: enrichedEntries,
@@ -207,6 +257,60 @@ app.get("/api/search", (req, res) => {
   }
   const results = searchArticles(q, limit);
   res.json({ query: q, results, total: results.length });
+});
+
+// Recent articles (optionally filtered by source feed)
+app.get("/api/articles/recent", (req, res) => {
+  const source = (req.query.source as string) || "";
+  const limit = Math.min(parseInt(req.query.limit as string) || 50, 200);
+  let results = getRecentArticles(limit);
+  if (source) {
+    results = results.filter((r) => r.feedId === source);
+  }
+  res.json({ results });
+});
+
+// Fetch cached articles by entry id (used for bookmarks/archive)
+app.post("/api/articles/by-ids", express.json(), (req, res) => {
+  const ids = req.body?.ids as string[] | undefined;
+  if (!Array.isArray(ids) || ids.length === 0) {
+    return res.json({ results: [] });
+  }
+  const cappedIds = ids.slice(0, 500);
+  const placeholders = cappedIds.map(() => "?").join(",");
+
+  const stmt = db.prepare(`
+    SELECT
+      ac.entry_id AS entry_id,
+      ac.feed_id AS feed_id,
+      ac.title AS title,
+      ac.link AS link,
+      ac.description AS description,
+      ac.pub_date AS pub_date,
+      ac.author AS author,
+      f.name AS feed_name,
+      (SELECT summary FROM article_summaries WHERE entry_id = ac.entry_id) AS ai_summary,
+      (SELECT json_group_array(tag) FROM article_tags WHERE entry_id = ac.entry_id) AS ai_tags
+    FROM article_cache AS ac
+    JOIN feeds AS f ON ac.feed_id = f.id
+    WHERE ac.entry_id IN (${placeholders})
+  `);
+
+  const rows = stmt.all(...cappedIds) as any[];
+  const results = rows.map((r) => ({
+    entryId: r.entry_id,
+    feedId: r.feed_id,
+    title: r.title,
+    link: r.link,
+    description: r.description,
+    pubDate: r.pub_date,
+    author: r.author,
+    feedName: r.feed_name,
+    aiSummary: r.ai_summary,
+    aiTags: parseTags(r.ai_tags),
+  }));
+
+  res.json({ results });
 });
 
 // Weekly recap
@@ -281,11 +385,12 @@ app.use((err: Error, _req: express.Request, res: express.Response, _next: expres
 
 if (import.meta.url === `file://${process.argv[1]}`) {
   const refreshIntervalMs = Number(process.env.CIVICFEED_REFRESH_INTERVAL_MS) || 60_000;
+  const disableScheduler = process.env.CIVICFEED_DISABLE_SCHEDULER === "1";
   const server = app.listen(PORT, () => {
-    logger.info("server started", { port: PORT, refreshIntervalMs });
+    logger.info("server started", { port: PORT, refreshIntervalMs, schedulerDisabled: disableScheduler });
   });
 
-  const stopScheduler = startFeedRefreshScheduler(db, refreshIntervalMs);
+  const stopScheduler = disableScheduler ? () => {} : startFeedRefreshScheduler(db, refreshIntervalMs);
 
   const shutdown = () => {
     stopScheduler();

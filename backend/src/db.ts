@@ -3,6 +3,7 @@ import path from "path";
 import { fileURLToPath } from "url";
 import { feeds } from "./feeds.js";
 import { applyMigrations, civicfeedMigrations } from "./migrations.js";
+import { logger } from "./logger.js";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const DB_PATH = process.env.CIVICFEED_DB_PATH || path.resolve(__dirname, "../data/civicfeed.db");
@@ -10,7 +11,7 @@ const DB_PATH = process.env.CIVICFEED_DB_PATH || path.resolve(__dirname, "../dat
 export const db = new Database(DB_PATH);
 db.pragma("journal_mode = WAL");
 
-applyMigrations(db, civicfeedMigrations);
+applyMigrations(db, civicfeedMigrations, logger);
 
 function seedFeeds() {
   const insert = db.prepare(`

@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach } from "vitest";
+import { describe, it, expect, beforeEach, vi } from "vitest";
 import Database from "better-sqlite3";
 import { applyMigrations, civicfeedMigrations, type Migration } from "./migrations.js";
 
@@ -61,6 +61,46 @@ describe("migrations", () => {
 
     const applied = db.prepare("SELECT id FROM migrations ORDER BY id").all() as { id: number }[];
     expect(applied.map((a) => a.id)).toEqual([1, 2]);
+  });
+
+  it("refuses to run when the database is ahead of the application code", () => {
+    const aheadMigration: Migration[] = [
+      {
+        id: 1,
+        name: "create_widgets",
+        up: (d) => d.exec("CREATE TABLE widgets (id INTEGER PRIMARY KEY)"),
+      },
+      {
+        id: 2,
+        name: "add_widgets_name",
+        up: (d) => d.exec("ALTER TABLE widgets ADD COLUMN name TEXT"),
+      },
+    ];
+    applyMigrations(db, aheadMigration);
+
+    const rolledBackMigration: Migration[] = [aheadMigration[0]];
+    expect(() => applyMigrations(db, rolledBackMigration)).toThrow(
+      /ahead of application code/
+    );
+  });
+
+  it("logs applied migrations", () => {
+    const info = vi.fn();
+    const warn = vi.fn();
+    applyMigrations(
+      db,
+      [
+        {
+          id: 1,
+          name: "create_widgets",
+          up: (d) => d.exec("CREATE TABLE widgets (id INTEGER PRIMARY KEY)"),
+        },
+      ],
+      { info, warn }
+    );
+
+    expect(info).toHaveBeenCalledWith("migration applied", { id: 1, name: "create_widgets" });
+    expect(info).toHaveBeenCalledWith("migrations up to date", { appliedCount: 1 });
   });
 
   it("rebuilds a contentless article_search table", () => {

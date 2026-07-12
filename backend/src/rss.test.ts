@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { parseRssXml } from "./rss.js";
+import { parseRssXml } from "./rss-parser.js";
 
 describe("parseRssXml", () => {
   it("parses a standard RSS 2.0 feed", () => {

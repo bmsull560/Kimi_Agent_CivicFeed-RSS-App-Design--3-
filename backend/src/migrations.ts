@@ -22,18 +22,48 @@ function getAppliedIds(db: Database.Database): number[] {
   return rows.map((r) => r.id);
 }
 
-export function applyMigrations(db: Database.Database, migrations: Migration[]) {
+/**
+ * Apply all unapplied migrations in deterministic order.
+ *
+ * Safety guards:
+ * - Migrations are applied inside a transaction and recorded in the migrations
+ *   table atomically.
+ * - If the database contains a migration ID higher than any ID in the provided
+ *   list, the process throws rather than silently ignoring schema drift. This
+ *   prevents an older code version from running against a newer database.
+ * - The helper is idempotent: already-applied migrations are skipped.
+ */
+export function applyMigrations(db: Database.Database, migrations: Migration[], logger?: { info: (msg: string, ctx?: Record<string, unknown>) => void; warn: (msg: string, ctx?: Record<string, unknown>) => void }) {
   ensureMigrationsTable(db);
-  const applied = new Set(getAppliedIds(db));
+
+  const sorted = [...migrations].sort((a, b) => a.id - b.id);
+  const applied = getAppliedIds(db);
+  const appliedSet = new Set(applied);
+
+  const maxApplied = applied.length > 0 ? Math.max(...applied) : 0;
+  const maxKnown = sorted.length > 0 ? sorted[sorted.length - 1].id : 0;
+  if (maxApplied > maxKnown) {
+    throw new Error(
+      `Database schema is ahead of application code: migration ${maxApplied} is applied but not known. ` +
+        `Refusing to start until code is upgraded.`
+    );
+  }
+
   const insert = db.prepare("INSERT INTO migrations (id, name) VALUES (?, ?)");
 
-  for (const migration of migrations) {
-    if (applied.has(migration.id)) continue;
+  for (const migration of sorted) {
+    if (appliedSet.has(migration.id)) continue;
 
     db.transaction(() => {
       migration.up(db);
       insert.run(migration.id, migration.name);
     })();
+
+    logger?.info("migration applied", { id: migration.id, name: migration.name });
+  }
+
+  if (applied.length < sorted.length) {
+    logger?.info("migrations up to date", { appliedCount: applied.length + (sorted.length - applied.length) });
   }
 }
 
@@ -174,6 +204,42 @@ export const civicfeedMigrations: Migration[] = [
 
         CREATE INDEX IF NOT EXISTS idx_feed_fetch_status_next_fetch_at
         ON feed_fetch_status(next_fetch_at);
+      `);
+    },
+  },
+  {
+    id: 4,
+    name: "feed_health_status",
+    up: (db) => {
+      db.exec(`
+        ALTER TABLE feeds ADD COLUMN health_status TEXT CHECK(health_status IN ('ok', 'warn', 'fail'));
+        ALTER TABLE feeds ADD COLUMN health_checked_at INTEGER;
+        ALTER TABLE feeds ADD COLUMN health_error TEXT;
+      `);
+    },
+  },
+  {
+    id: 5,
+    name: "enrichment_jobs_queue",
+    up: (db) => {
+      db.exec(`
+        CREATE TABLE IF NOT EXISTS enrichment_jobs (
+          id INTEGER PRIMARY KEY AUTOINCREMENT,
+          entry_id TEXT NOT NULL,
+          feed_id TEXT NOT NULL,
+          title TEXT NOT NULL,
+          description TEXT NOT NULL,
+          status TEXT NOT NULL DEFAULT 'pending' CHECK(status IN ('pending', 'running', 'done', 'failed')),
+          priority INTEGER NOT NULL DEFAULT 0,
+          created_at INTEGER NOT NULL,
+          started_at INTEGER,
+          finished_at INTEGER,
+          error TEXT,
+          UNIQUE(entry_id)
+        );
+
+        CREATE INDEX IF NOT EXISTS idx_enrichment_jobs_status_created
+        ON enrichment_jobs(status, priority DESC, created_at);
       `);
     },
   },

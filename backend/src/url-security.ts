@@ -18,6 +18,7 @@ export class UnsafeUrlError extends Error {
 }
 
 function isPrivateOrReservedIp(ip: string): boolean {
+  if (process.env.CIVICFEED_ALLOW_PRIVATE_URLS === "1") return false;
   if (!ip) return true;
 
   // IPv4 classifications.

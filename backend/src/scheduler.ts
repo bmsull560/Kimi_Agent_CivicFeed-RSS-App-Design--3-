@@ -2,6 +2,9 @@ import type Database from "better-sqlite3";
 import { fetchFeed } from "./rss.js";
 import { saveArticles } from "./cache.js";
 import { logger } from "./logger.js";
+import { processEnrichmentBatch } from "./enrichment-queue.js";
+import { validateAllFeedHealth } from "./feed-health.js";
+import { feeds } from "./feeds.js";
 
 interface DueFeed {
   id: string;
@@ -90,16 +93,35 @@ export async function refreshDueFeeds(
 
 export function startFeedRefreshScheduler(
   db: Database.Database,
-  intervalMs = 60_000
+  intervalMs = 60_000,
+  healthIntervalMs = 60 * 60 * 1000
 ): () => void {
   let stopped = false;
+  let lastHealthRun = 0;
 
   async function tick() {
     if (stopped) return;
+
     try {
       await refreshDueFeeds(db);
     } catch (err) {
       logger.error("scheduled refresh failed", err);
+    }
+
+    try {
+      await processEnrichmentBatch(20, 3);
+    } catch (err) {
+      logger.error("scheduled enrichment processing failed", err);
+    }
+
+    const now = Date.now();
+    if (now - lastHealthRun >= healthIntervalMs) {
+      try {
+        await validateAllFeedHealth(db, feeds, now);
+        lastHealthRun = now;
+      } catch (err) {
+        logger.error("scheduled feed health validation failed", err);
+      }
     }
   }
 

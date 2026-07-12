@@ -50,7 +50,7 @@ describe("server", () => {
     expect(res.status).toBe(404);
   });
 
-  it("GET /api/feeds/:id/articles fetches and enriches articles", async () => {
+  it("GET /api/feeds/:id/articles fetches articles and enriches them asynchronously", async () => {
     const xml = `<?xml version="1.0"?>
 <rss version="2.0">
   <channel>
@@ -66,12 +66,20 @@ describe("server", () => {
 
     vi.stubGlobal("fetch", vi.fn(async () => new Response(xml, { status: 200 })));
 
+    // Initial request returns articles immediately; enrichment is queued.
     const res = await request(app).get("/api/feeds/feed-server/articles");
     expect(res.status).toBe(200);
     expect(res.body.entries).toHaveLength(1);
     expect(res.body.entries[0].title).toBe("Server Entry");
-    expect(res.body.entries[0].aiSummary).toBeDefined();
-    expect(res.body.entries[0].aiTags).toBeDefined();
+
+    // Process the queued enrichment job and re-fetch.
+    const { processEnrichmentBatch } = await import("./enrichment-queue.js");
+    await processEnrichmentBatch(10, 1);
+
+    const enriched = await request(app).get("/api/feeds/feed-server/articles");
+    expect(enriched.status).toBe(200);
+    expect(enriched.body.entries[0].aiSummary).toBeDefined();
+    expect(enriched.body.entries[0].aiTags).toBeDefined();
   });
 
   it("GET /api/search returns results", async () => {
