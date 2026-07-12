@@ -1,6 +1,6 @@
 import { useCallback, useMemo, useState } from "react";
 import type { Feed, UserFeed } from "../types";
-import { feeds as staticFeeds } from "../data/feeds";
+import { useFeeds } from "./useFeeds";
 import {
   addUserFeed,
   createUserFeed,
@@ -17,6 +17,8 @@ import {
 export interface UseUserFeedsResult {
   allFeeds: Feed[];
   enabledFeeds: Feed[];
+  catalogLoading: boolean;
+  catalogError: string | null;
   addFeed: (feed: Omit<Feed, "id" | "status" | "userAdded" | "enabled" | "addedAt">) => boolean;
   updateFeed: (id: string, updates: Partial<Omit<UserFeed, "id" | "userAdded" | "addedAt">>) => boolean;
   removeFeed: (id: string) => void;
@@ -26,25 +28,29 @@ export interface UseUserFeedsResult {
 }
 
 export function useUserFeeds(): UseUserFeedsResult {
+  const { feeds: catalogFeeds, loading: catalogLoading, error: catalogError, refresh: refreshCatalog } = useFeeds();
   const [tick, setTick] = useState(0);
 
-  const refresh = useCallback(() => setTick(t => t + 1), []);
+  const refresh = useCallback(() => {
+    refreshCatalog();
+    setTick((t) => t + 1);
+  }, [refreshCatalog]);
 
   const allFeeds = useMemo(() => {
     // tick is read to force re-computation when user data changes.
     void tick;
-    return getAllFeeds(staticFeeds);
-  }, [tick]);
+    return getAllFeeds(catalogFeeds);
+  }, [catalogFeeds, tick]);
 
   const enabledFeeds = useMemo(() => {
     void tick;
-    return getEnabledFeeds(staticFeeds);
-  }, [tick]);
+    return getEnabledFeeds(catalogFeeds);
+  }, [catalogFeeds, tick]);
 
   const addFeed = useCallback(
     (partial: Omit<Feed, "id" | "status" | "userAdded" | "enabled" | "addedAt">) => {
       const normalized = normalizeUrl(partial.rssUrl);
-      const duplicate = allFeeds.find(f => normalizeUrl(f.rssUrl) === normalized);
+      const duplicate = allFeeds.find((f) => normalizeUrl(f.rssUrl) === normalized);
       if (duplicate) {
         alert(`A feed with this URL already exists as "${duplicate.shortName}".`);
         return false;
@@ -59,12 +65,12 @@ export function useUserFeeds(): UseUserFeedsResult {
 
   const updateFeed = useCallback(
     (id: string, updates: Partial<Omit<UserFeed, "id" | "userAdded" | "addedAt">>) => {
-      const current = loadUserData().feeds.find(f => f.id === id);
+      const current = loadUserData().feeds.find((f) => f.id === id);
       if (!current) return false;
       if (updates.rssUrl) {
         const normalized = normalizeUrl(updates.rssUrl);
         const duplicate = allFeeds.find(
-          f => f.id !== id && normalizeUrl(f.rssUrl) === normalized
+          (f) => f.id !== id && normalizeUrl(f.rssUrl) === normalized,
         );
         if (duplicate) {
           alert(`A feed with this URL already exists as "${duplicate.shortName}".`);
@@ -88,7 +94,7 @@ export function useUserFeeds(): UseUserFeedsResult {
 
   const toggleFeedEnabled = useCallback(
     (id: string) => {
-      const feed = allFeeds.find(f => f.id === id);
+      const feed = allFeeds.find((f) => f.id === id);
       const next = !(feed?.enabled ?? true);
       setFeedEnabled(id, next);
       refresh();
@@ -98,8 +104,8 @@ export function useUserFeeds(): UseUserFeedsResult {
 
   const importFeeds = useCallback(
     (feeds: UserFeed[]) => {
-      const existingUrls = new Set(allFeeds.map(f => normalizeUrl(f.rssUrl)));
-      const newFeeds = feeds.filter(f => !existingUrls.has(normalizeUrl(f.rssUrl)));
+      const existingUrls = new Set(allFeeds.map((f) => normalizeUrl(f.rssUrl)));
+      const newFeeds = feeds.filter((f) => !existingUrls.has(normalizeUrl(f.rssUrl)));
       if (newFeeds.length < feeds.length) {
         alert(`Skipped ${feeds.length - newFeeds.length} duplicate feed(s).`);
       }
@@ -114,6 +120,8 @@ export function useUserFeeds(): UseUserFeedsResult {
   return {
     allFeeds,
     enabledFeeds,
+    catalogLoading,
+    catalogError,
     addFeed,
     updateFeed,
     removeFeed,

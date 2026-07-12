@@ -1,11 +1,10 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { useSearchParams } from "react-router-dom";
-import { Newspaper } from "lucide-react";
+import { Newspaper, Loader2 } from "lucide-react";
 import { useUserFeeds } from "../hooks/useUserFeeds";
-import { useFeedCache } from "../hooks/useFeedCache";
 import EntryCard from "../components/EntryCard";
 import EmptyState from "../components/EmptyState";
-import type { RssEntry } from "../types";
+import type { RssEntry, SearchResultItem } from "../types";
 import { isRead, isBookmarked, isArchived } from "../lib/userData";
 import {
   Select,
@@ -17,14 +16,28 @@ import {
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 
+function toEntry(r: SearchResultItem): RssEntry {
+  return {
+    id: r.entryId,
+    title: r.title,
+    link: r.link,
+    description: r.description,
+    pubDate: r.pubDate,
+    author: r.author || undefined,
+    feedId: r.feedId,
+    feedName: r.feedName,
+    fetchedAt: 0,
+    aiSummary: r.aiSummary,
+    aiTags: r.aiTags,
+  };
+}
+
 export default function ReadingStream() {
   const [searchParams, setSearchParams] = useSearchParams();
   const { enabledFeeds } = useUserFeeds();
-  const { allCached } = useFeedCache();
   const [tick, setTick] = useState(0);
-
-  const enabledIds = useMemo(() => new Set(enabledFeeds.map(f => f.id)), [enabledFeeds]);
-  const cached = allCached(true);
+  const [entries, setEntries] = useState<RssEntry[]>([]);
+  const [loading, setLoading] = useState(false);
 
   const queryParam = searchParams.get("q") || "";
   const sourceParam = searchParams.get("source") || "";
@@ -32,46 +45,67 @@ export default function ReadingStream() {
 
   const [query, setQuery] = useState(queryParam);
 
-  const allEntries = useMemo(() => {
-    const entries: RssEntry[] = [];
-    for (const cache of cached) {
-      if (!enabledIds.has(cache.feedId)) continue;
-      for (const entry of cache.entries) {
-        entries.push(entry);
+  const enabledIds = useMemo(() => new Set(enabledFeeds.map((f) => f.id)), [enabledFeeds]);
+
+  useEffect(() => {
+    const load = async () => {
+      setLoading(true);
+      try {
+        const apiBase = import.meta.env?.VITE_API_URL || "";
+        const candidates = new Set<string>([apiBase]);
+        if (["localhost", "127.0.0.1"].includes(window.location.hostname)) {
+          candidates.add("http://localhost:4000");
+        }
+
+        for (const base of candidates) {
+          try {
+            const url = new URL(`${base}/api/articles/recent`);
+            url.searchParams.set("limit", "200");
+            if (sourceParam) url.searchParams.set("source", sourceParam);
+
+            const res = await fetch(url.toString(), { signal: AbortSignal.timeout(15000) });
+            if (!res.ok) continue;
+            const data = (await res.json()) as { results?: SearchResultItem[] };
+            setEntries((data.results || []).map(toEntry).filter((e) => enabledIds.has(e.feedId)));
+            return;
+          } catch {
+            // try next candidate
+          }
+        }
+      } finally {
+        setLoading(false);
       }
-    }
-    return entries.sort((a, b) => new Date(b.pubDate).getTime() - new Date(a.pubDate).getTime());
-  }, [cached, enabledIds]);
+    };
+
+    void load();
+  }, [sourceParam, enabledIds, tick]);
 
   const filteredEntries = useMemo(() => {
-    let result = allEntries;
+    let result = entries;
     if (queryParam) {
       const lower = queryParam.toLowerCase();
-      result = result.filter(e =>
+      result = result.filter((e) =>
         e.title.toLowerCase().includes(lower) ||
         e.description.toLowerCase().includes(lower) ||
         e.feedName.toLowerCase().includes(lower)
       );
     }
-    if (sourceParam) {
-      result = result.filter(e => e.feedId === sourceParam);
-    }
     switch (statusParam) {
       case "unread":
-        result = result.filter(e => !isRead(e.id));
+        result = result.filter((e) => !isRead(e.id));
         break;
       case "read":
-        result = result.filter(e => isRead(e.id));
+        result = result.filter((e) => isRead(e.id));
         break;
       case "bookmarked":
-        result = result.filter(e => isBookmarked(e.id));
+        result = result.filter((e) => isBookmarked(e.id));
         break;
       case "archived":
-        result = result.filter(e => isArchived(e.id));
+        result = result.filter((e) => isArchived(e.id));
         break;
     }
     return result;
-  }, [allEntries, queryParam, sourceParam, statusParam]);
+  }, [entries, queryParam, statusParam]);
 
   const applyFilters = () => {
     const p = new URLSearchParams(searchParams);
@@ -99,7 +133,7 @@ export default function ReadingStream() {
     setSearchParams(p);
   };
 
-  const refresh = () => setTick(t => t + 1);
+  const refresh = () => setTick((t) => t + 1);
 
   return (
     <div className="space-y-4" key={tick}>
@@ -114,10 +148,10 @@ export default function ReadingStream() {
           <div className="flex gap-2">
             <Input
               type="text"
-              placeholder="Search articles..."
+              placeholder="Search articles…"
               value={query}
-              onChange={e => setQuery(e.target.value)}
-              onKeyDown={e => e.key === "Enter" && applyFilters()}
+              onChange={(e) => setQuery(e.target.value)}
+              onKeyDown={(e) => e.key === "Enter" && applyFilters()}
               className="w-48"
             />
             <Button type="button" variant="outline" onClick={applyFilters}>Search</Button>
@@ -128,7 +162,7 @@ export default function ReadingStream() {
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="__all__">All sources</SelectItem>
-              {enabledFeeds.map(f => (
+              {enabledFeeds.map((f) => (
                 <SelectItem key={f.id} value={f.id}>{f.shortName}</SelectItem>
               ))}
             </SelectContent>
@@ -151,15 +185,21 @@ export default function ReadingStream() {
         </div>
       </div>
 
-      {filteredEntries.length === 0 ? (
+      {loading && (
+        <div className="card p-8 flex items-center justify-center gap-2 text-slate-500">
+          <Loader2 size={18} className="animate-spin" /> Loading articles…
+        </div>
+      )}
+
+      {!loading && filteredEntries.length === 0 ? (
         <EmptyState
           message="No articles found"
-          subMessage={allEntries.length === 0 ? "Visit a feed to load articles, then return here." : "Try adjusting your filters."}
+          subMessage={entries.length === 0 ? "Visit a feed to load articles, then return here." : "Try adjusting your filters."}
           action={{ label: "Browse Feeds", onClick: () => window.location.hash = "#/feeds" }}
         />
       ) : (
         <div className="card divide-y divide-slate-100 px-5">
-          {filteredEntries.map(entry => (
+          {filteredEntries.map((entry) => (
             <EntryCard key={entry.id} entry={entry} onChange={refresh} />
           ))}
         </div>

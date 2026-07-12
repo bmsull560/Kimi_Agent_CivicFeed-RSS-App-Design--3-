@@ -6,6 +6,6 @@ interface FeedStatusSectionProps {
 }
 
 export default function FeedStatusSection({ feedId }: FeedStatusSectionProps) {
-  const { status, loading, refresh } = useFeedStatus(feedId);
-  return <FeedStatusPanel status={status} loading={loading} onRefresh={refresh} />;
+  const { status, health, loading, refresh } = useFeedStatus(feedId);
+  return <FeedStatusPanel status={status} health={health} loading={loading} onRefresh={refresh} />;
 }

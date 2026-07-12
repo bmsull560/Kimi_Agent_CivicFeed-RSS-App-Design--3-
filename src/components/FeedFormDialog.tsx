@@ -19,9 +19,9 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { categoryList } from "@/data/feeds";
-import type { DiscoveredFeed, Feed, UserFeed } from "@/types";
-import { discoverFeeds, fetchFeed } from "@/lib/rss";
+import { useFeeds } from "../hooks/useFeeds";
+import type { DiscoveredFeed, Feed, UserFeed } from "../types";
+import { discoverFeeds, validateFeedUrl } from "@/lib/rss";
 
 export interface FeedFormDialogProps {
   mode: "add" | "edit";
@@ -70,6 +70,8 @@ export default function FeedFormDialog({ mode, feed, onSave, trigger }: FeedForm
     if (next) resetForm();
   };
 
+  const { categoryList } = useFeeds();
+
   const validate = async (): Promise<boolean> => {
     setError(null);
     if (!name.trim()) {
@@ -87,8 +89,8 @@ export default function FeedFormDialog({ mode, feed, onSave, trigger }: FeedForm
 
     setValidating(true);
     try {
-      const result = await fetchFeed(rssUrl, "preview", name);
-      if (result.error || result.entries.length === 0) {
+      const result = await validateFeedUrl(rssUrl);
+      if (!result.ok) {
         setError(`Could not fetch a valid feed from this URL. ${result.error || ""}`.trim());
         return false;
       }

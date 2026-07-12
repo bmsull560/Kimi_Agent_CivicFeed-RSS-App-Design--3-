@@ -1,14 +1,15 @@
+import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import {
   TrendingUp, Globe, Shield, Heart, Leaf, Landmark, Scale, Briefcase, Store,
-  Train, AlertTriangle, Palette, Eye, FileText, Star, Newspaper, BookOpen, Sprout,
+  Train, AlertTriangle, Palette, Eye, FileText, Star, Newspaper, Sprout,
   Cpu, Home, HeartPulse, RefreshCw, ArrowRight, Rss,
 } from "lucide-react";
 import { useUserFeeds } from "../hooks/useUserFeeds";
-import { useFeedCache } from "../hooks/useFeedCache";
 import CategoryCard from "../components/CategoryCard";
 import EntryCard from "../components/EntryCard";
 import EmptyState from "../components/EmptyState";
+import type { RssEntry, SearchResultItem } from "../types";
 
 const categoryIcons: Record<string, React.ReactNode> = {
   "Oversight & Audits": <Eye size={20} />,
@@ -25,7 +26,6 @@ const categoryIcons: Record<string, React.ReactNode> = {
   "Safety & Consumer Protection": <AlertTriangle size={20} />,
   "Commerce & Trade": <Store size={20} />,
   "Rulemaking & Regulations": <FileText size={20} />,
-  "Development & Education": <BookOpen size={20} />,
   "Executive & Press": <Star size={20} />,
   "Transportation": <Train size={20} />,
   "Agriculture & Food": <Sprout size={20} />,
@@ -34,31 +34,61 @@ const categoryIcons: Record<string, React.ReactNode> = {
   "Veterans Affairs, Healthcare, & Benefits": <HeartPulse size={20} />,
 };
 
-function formatRelativeTime(timestamp: number): string {
-  const diff = Date.now() - timestamp;
-  const mins = Math.floor(diff / 60000);
-  if (mins < 1) return "just now";
-  if (mins < 60) return `${mins}m ago`;
-  const hours = Math.floor(mins / 60);
-  if (hours < 24) return `${hours}h ago`;
-  const days = Math.floor(hours / 24);
-  return `${days}d ago`;
+function toRssEntry(r: SearchResultItem): RssEntry {
+  return {
+    id: r.entryId,
+    title: r.title,
+    link: r.link,
+    description: r.description,
+    pubDate: r.pubDate,
+    author: r.author || undefined,
+    feedId: r.feedId,
+    feedName: r.feedName,
+    fetchedAt: 0,
+    aiSummary: r.aiSummary,
+    aiTags: r.aiTags,
+  };
 }
 
 export default function Dashboard() {
   const navigate = useNavigate();
-  const { allFeeds, enabledFeeds } = useUserFeeds();
-  const { allCached, clearAll, stats } = useFeedCache();
-  const cachedData = allCached(true);
-  const cacheStats = stats();
+  const { allFeeds, enabledFeeds, catalogLoading, catalogError, refresh } = useUserFeeds();
+  const [recentEntries, setRecentEntries] = useState<RssEntry[]>([]);
+  const [recentLoading, setRecentLoading] = useState(false);
 
-  const handleRefreshAll = () => { clearAll(); window.location.reload(); };
+  useEffect(() => {
+    const load = async () => {
+      setRecentLoading(true);
+      try {
+        const apiBase = import.meta.env?.VITE_API_URL || "";
+        const candidates = new Set<string>([apiBase]);
+        if (["localhost", "127.0.0.1"].includes(window.location.hostname)) {
+          candidates.add("http://localhost:4000");
+        }
 
-  const recentEntries = cachedData
-    .filter(c => enabledFeeds.some(f => f.id === c.feedId))
-    .flatMap(c => c.entries.slice(0, 3).map(e => ({ ...e, _feedId: c.feedId })))
-    .sort((a, b) => new Date(b.pubDate).getTime() - new Date(a.pubDate).getTime())
-    .slice(0, 10);
+        for (const base of candidates) {
+          try {
+            const res = await fetch(`${base}/api/articles/recent?limit=50`, {
+              signal: AbortSignal.timeout(10000),
+            });
+            if (!res.ok) continue;
+            const data = (await res.json()) as { results?: SearchResultItem[] };
+            setRecentEntries((data.results || []).map(toRssEntry));
+            return;
+          } catch {
+            // try next candidate
+          }
+        }
+      } finally {
+        setRecentLoading(false);
+      }
+    };
+
+    void load();
+  }, []);
+
+  const enabledIds = useMemo(() => new Set(enabledFeeds.map((f) => f.id)), [enabledFeeds]);
+  const visibleRecent = recentEntries.filter((e) => enabledIds.has(e.feedId)).slice(0, 10);
 
   const byCategory: Record<string, number> = {};
   for (const feed of enabledFeeds) {
@@ -66,7 +96,9 @@ export default function Dashboard() {
   }
   const categoryList = Object.keys(byCategory).sort();
 
-  const tierOneFeeds = enabledFeeds.filter(f => f.priority === 1).slice(0, 6);
+  const tierOneFeeds = enabledFeeds.filter((f) => f.priority === 1).slice(0, 6);
+
+  const handleRefreshAll = () => { refresh(); window.location.reload(); };
 
   return (
     <div className="space-y-8">
@@ -75,17 +107,18 @@ export default function Dashboard() {
           <div>
             <h1 className="text-2xl font-bold text-slate-900">U.S. Government RSS Feeds</h1>
             <p className="text-sm text-slate-500 mt-1">{allFeeds.length} feeds across {categoryList.length} categories{enabledFeeds.length !== allFeeds.length && ` (${enabledFeeds.length} enabled)`}</p>
+            {catalogError && <p className="text-sm text-amber-700 mt-1">{catalogError}</p>}
           </div>
           <div className="flex items-center gap-2">
-            <button onClick={handleRefreshAll} className="btn-secondary" type="button" title="Clear cache and reload"><RefreshCw size={16} /> Refresh All</button>
+            <button onClick={handleRefreshAll} className="btn-secondary" type="button" title="Reload page and refresh catalog"><RefreshCw size={16} /> Refresh All</button>
             <button onClick={() => navigate("/feeds")} className="btn-primary" type="button">Browse All <ArrowRight size={16} /></button>
           </div>
         </div>
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mt-6">
           <div className="bg-slate-50 rounded-lg p-3 text-center"><p className="text-2xl font-bold text-blue-600">{allFeeds.length}</p><p className="text-[0.6875rem] text-slate-500 uppercase tracking-wide">Total Feeds</p></div>
           <div className="bg-slate-50 rounded-lg p-3 text-center"><p className="text-2xl font-bold text-blue-600">{categoryList.length}</p><p className="text-[0.6875rem] text-slate-500 uppercase tracking-wide">Categories</p></div>
-          <div className="bg-slate-50 rounded-lg p-3 text-center"><p className="text-2xl font-bold text-blue-600">{cachedData.length}</p><p className="text-[0.6875rem] text-slate-500 uppercase tracking-wide">Cached</p></div>
-          <div className="bg-slate-50 rounded-lg p-3 text-center"><p className="text-2xl font-bold text-blue-600">{cacheStats.oldestFetch ? formatRelativeTime(cacheStats.oldestFetch) : "—"}</p><p className="text-[0.6875rem] text-slate-500 uppercase tracking-wide">Last Update</p></div>
+          <div className="bg-slate-50 rounded-lg p-3 text-center"><p className="text-2xl font-bold text-blue-600">{visibleRecent.length}</p><p className="text-[0.6875rem] text-slate-500 uppercase tracking-wide">Recent</p></div>
+          <div className="bg-slate-50 rounded-lg p-3 text-center"><p className="text-2xl font-bold text-blue-600">{catalogLoading ? "—" : "Live"}</p><p className="text-[0.6875rem] text-slate-500 uppercase tracking-wide">Catalog</p></div>
         </div>
       </section>
 
@@ -101,7 +134,7 @@ export default function Dashboard() {
           </button>
         </div>
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-          {tierOneFeeds.map(feed => (
+          {tierOneFeeds.map((feed) => (
             <button key={feed.id} onClick={() => navigate(`/feed/${feed.id}`)} className="card card-hover cursor-pointer p-4 text-left" type="button">
               <div className="flex items-start justify-between">
                 <div>
@@ -121,7 +154,7 @@ export default function Dashboard() {
       <section>
         <h2 className="text-lg font-semibold text-slate-900 mb-4">Browse by Category</h2>
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3">
-          {categoryList.map(cat => (
+          {categoryList.map((cat) => (
             <CategoryCard key={cat} category={cat} count={byCategory[cat] || 0} icon={categoryIcons[cat] || <Rss size={20} />}
               onClick={() => navigate(`/feeds?category=${encodeURIComponent(cat)}`)} />
           ))}
@@ -130,13 +163,15 @@ export default function Dashboard() {
 
       <section>
         <h2 className="text-lg font-semibold text-slate-900 mb-4">Recent Entries</h2>
-        {recentEntries.length > 0 ? (
+        {recentLoading ? (
+          <p className="text-sm text-slate-500">Loading recent entries…</p>
+        ) : visibleRecent.length > 0 ? (
           <div className="card divide-y divide-slate-100 px-5">
-            {recentEntries.map(entry => <EntryCard key={entry.id} entry={entry} compact />)}
+            {visibleRecent.map((entry) => <EntryCard key={entry.id} entry={entry} compact />)}
           </div>
         ) : (
           <div className="card">
-            <EmptyState message="No cached entries yet" subMessage="Visit a feed to load entries. They'll be cached locally for quick access."
+            <EmptyState message="No recent entries yet" subMessage="Visit a feed to load entries from the backend cache."
               action={{ label: "Browse Feeds", onClick: () => navigate("/feeds") }} />
           </div>
         )}

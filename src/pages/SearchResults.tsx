@@ -4,21 +4,7 @@ import { Search, Loader2 } from "lucide-react";
 import EntryCard from "../components/EntryCard";
 import EmptyState from "../components/EmptyState";
 import { useUserFeeds } from "../hooks/useUserFeeds";
-import { useFeedCache } from "../hooks/useFeedCache";
-import type { RssEntry } from "../types";
-
-interface SearchResultItem {
-  entryId: string;
-  feedId: string;
-  title: string;
-  link: string;
-  description: string;
-  pubDate: string;
-  author: string | null;
-  feedName: string;
-  aiSummary?: string;
-  aiTags?: string[];
-}
+import type { RssEntry, SearchResultItem } from "../types";
 
 function toEntry(r: SearchResultItem): RssEntry {
   return {
@@ -41,90 +27,53 @@ export default function SearchResults() {
   const q = searchParams.get("q") || "";
   const [results, setResults] = useState<SearchResultItem[]>([]);
   const [loading, setLoading] = useState(false);
-  const [augmentedFromBackend, setAugmentedFromBackend] = useState(false);
-  const [backendAvailable, setBackendAvailable] = useState<boolean | null>(null);
+  const [error, setError] = useState<string | null>(null);
   const { enabledFeeds } = useUserFeeds();
-  const { allCached } = useFeedCache();
 
-  const enabledIds = useMemo(() => new Set(enabledFeeds.map(f => f.id)), [enabledFeeds]);
-
-  const localResults = useMemo(() => {
-    if (!q.trim()) return [];
-    const lower = q.toLowerCase();
-    return allCached(true)
-      .filter(c => enabledIds.has(c.feedId))
-      .flatMap(c => c.entries)
-      .filter(e =>
-        e.title.toLowerCase().includes(lower) ||
-        e.description.toLowerCase().includes(lower) ||
-        e.feedName.toLowerCase().includes(lower) ||
-        (e.categories?.some(c => c.toLowerCase().includes(lower)) ?? false)
-      )
-      .sort((a, b) => new Date(b.pubDate).getTime() - new Date(a.pubDate).getTime())
-      .map(e => ({
-        entryId: e.id,
-        feedId: e.feedId,
-        title: e.title,
-        link: e.link,
-        description: e.description,
-        pubDate: e.pubDate,
-        author: e.author || null,
-        feedName: e.feedName,
-        aiSummary: e.aiSummary,
-        aiTags: e.aiTags,
-      }));
-  }, [q, allCached, enabledIds]);
+  const enabledIds = useMemo(() => new Set(enabledFeeds.map((f) => f.id)), [enabledFeeds]);
 
   useEffect(() => {
     const run = async () => {
       if (!q.trim()) {
         setResults([]);
         setLoading(false);
-        setAugmentedFromBackend(false);
+        setError(null);
         return;
       }
 
       setLoading(true);
-      setResults(localResults);
-      setAugmentedFromBackend(false);
-      setBackendAvailable(null);
+      setError(null);
+      setResults([]);
 
-      try {
-        const controller = new AbortController();
-        const timer = setTimeout(() => controller.abort(), 5000);
-        const r = await fetch(`/api/search?q=${encodeURIComponent(q)}`, { signal: controller.signal });
-        clearTimeout(timer);
-
-        if (!r.ok) {
-          setBackendAvailable(false);
-          return;
-        }
-        const data = (await r.json()) as { results?: SearchResultItem[] };
-        const serverResults = data.results || [];
-        if (serverResults.length === 0) {
-          setBackendAvailable(true);
-          return;
-        }
-
-        // Merge server results (which may include enriched summaries/tags) with local results.
-        const merged = new Map<string, SearchResultItem>();
-        for (const item of serverResults) merged.set(item.entryId, item);
-        for (const item of localResults) {
-          if (!merged.has(item.entryId)) merged.set(item.entryId, item);
-        }
-        setResults([...merged.values()]);
-        setAugmentedFromBackend(true);
-        setBackendAvailable(true);
-      } catch {
-        // Backend is optional; local results are already displayed.
-        setBackendAvailable(false);
-      } finally {
-        setLoading(false);
+      const apiBase = import.meta.env?.VITE_API_URL || "";
+      const candidates = new Set<string>([apiBase]);
+      if (["localhost", "127.0.0.1"].includes(window.location.hostname)) {
+        candidates.add("http://localhost:4000");
       }
+
+      for (const base of candidates) {
+        try {
+          const controller = new AbortController();
+          const timer = setTimeout(() => controller.abort(), 10000);
+          const r = await fetch(`${base}/api/search?q=${encodeURIComponent(q)}&limit=50`, { signal: controller.signal });
+          clearTimeout(timer);
+
+          if (!r.ok) continue;
+          const data = (await r.json()) as { results?: SearchResultItem[] };
+          setResults((data.results || []).filter((item) => enabledIds.has(item.feedId)));
+          setLoading(false);
+          return;
+        } catch {
+          // Try next candidate.
+        }
+      }
+
+      setError("Search unavailable. Is the backend running?");
+      setLoading(false);
     };
 
     void run();
-  }, [q, localResults]);
+  }, [q, enabledIds]);
 
   return (
     <div className="space-y-4">
@@ -137,8 +86,7 @@ export default function SearchResults() {
           {!loading && q && (
             <p className="text-sm text-slate-500">
               {results.length} result{results.length !== 1 ? "s" : ""}
-              {augmentedFromBackend && " (augmented from backend)"}
-              {backendAvailable === false && " (local cache only — backend unavailable)"}
+              {error && ` — ${error}`}
             </p>
           )}
         </div>
@@ -146,14 +94,14 @@ export default function SearchResults() {
 
       {loading && results.length === 0 && (
         <div className="card p-8 flex items-center justify-center gap-2 text-slate-500">
-          <Loader2 size={18} className="animate-spin" /> Searching...
+          <Loader2 size={18} className="animate-spin" /> Searching…
         </div>
       )}
 
       {!loading && q && results.length === 0 && (
         <EmptyState
           message="No articles found"
-          subMessage={`No results for "${q}". Try different keywords or visit a feed to cache more articles.`}
+          subMessage={error || `No results for "${q}". Try different keywords or visit a feed to cache more articles.`}
         />
       )}
 
@@ -168,7 +116,7 @@ export default function SearchResults() {
       {!q && (
         <EmptyState
           message="Enter a search term"
-          subMessage="Search across cached article titles, descriptions, summaries, and tags. Connect the backend API for expanded results across the full article archive."
+          subMessage="Search across cached article titles, descriptions, summaries, and tags from enabled feeds."
         />
       )}
     </div>
