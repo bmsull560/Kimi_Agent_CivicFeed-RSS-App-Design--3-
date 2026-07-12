@@ -30,7 +30,12 @@ describe("ai enrichment", () => {
     const feedId = insertTestFeed({ id: "feed-cache" });
     const entryId = "entry-cache-1";
 
-    await enrichArticle(entryId, feedId, "Federal grant awarded", "A federal grant was awarded to the state department.");
+    await enrichArticle(
+      entryId,
+      feedId,
+      "Federal grant awarded",
+      "A federal grant was awarded to the state department."
+    );
     const cached = getCachedEnrichment(entryId);
 
     expect(cached).not.toBeNull();
@@ -42,7 +47,12 @@ describe("ai enrichment", () => {
     const feedId = insertTestFeed({ id: "feed-cache-hit" });
     const entryId = "entry-cache-hit-1";
 
-    const first = await enrichArticle(entryId, feedId, "Unique title for cache test", "Description text.");
+    const first = await enrichArticle(
+      entryId,
+      feedId,
+      "Unique title for cache test",
+      "Description text."
+    );
     const second = getCachedEnrichment(entryId);
 
     expect(second?.summary).toBe(first.summary);

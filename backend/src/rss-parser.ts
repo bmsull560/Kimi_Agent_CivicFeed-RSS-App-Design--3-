@@ -13,12 +13,14 @@ export interface RssEntry {
   fetchedAt: number;
 }
 
+type XmlNode = Record<string, unknown>;
+
 export function generateEntryId(link: string, title: string, pubDate: string): string {
   const str = `${link}::${title}::${pubDate}`;
   let hash = 0;
   for (let i = 0; i < str.length; i++) {
     const char = str.charCodeAt(i);
-    hash = ((hash << 5) - hash) + char;
+    hash = (hash << 5) - hash + char;
     hash |= 0;
   }
   return `entry-${Math.abs(hash).toString(36)}`;
@@ -38,11 +40,17 @@ export function normalizeDate(dateStr: string): string {
   return new Date().toISOString();
 }
 
-function parseRssItems(items: any[], feedId: string, feedName: string): RssEntry[] {
+function getTextVal(v: unknown): string {
+  if (typeof v === "string") return v;
+  const text = v && typeof v === "object" ? (v as XmlNode)["#text"] : undefined;
+  return typeof text === "string" ? text : "";
+}
+
+function parseRssItems(items: unknown[], feedId: string, feedName: string): RssEntry[] {
   const entries: RssEntry[] = [];
   const now = Date.now();
-  for (const item of items) {
-    const getTextVal = (v: any): string => (typeof v === "string" ? v : v?.["#text"] || "");
+  for (const raw of items) {
+    const item = raw as XmlNode;
     const title = getTextVal(item.title).trim();
     const link = (getTextVal(item.link) || getTextVal(item.guid)).trim();
     const description = getTextVal(item.description) || getTextVal(item["content:encoded"]);
@@ -53,7 +61,7 @@ function parseRssItems(items: any[], feedId: string, feedName: string): RssEntry
     if (item.category) {
       const raw = Array.isArray(item.category) ? item.category : [item.category];
       for (const c of raw) {
-        const t = typeof c === "string" ? c.trim() : (c?.["#text"] || "").trim();
+        const t = typeof c === "string" ? c.trim() : getTextVal(c).trim();
         if (t) cats.push(t);
       }
     }
@@ -74,35 +82,39 @@ function parseRssItems(items: any[], feedId: string, feedName: string): RssEntry
   return entries;
 }
 
-function parseAtomEntries(entries: any[], feedId: string, feedName: string): RssEntry[] {
+function parseAtomEntries(entries: unknown[], feedId: string, feedName: string): RssEntry[] {
   const result: RssEntry[] = [];
   const now = Date.now();
-  for (const entry of entries) {
-    const title = (entry.title || "").trim();
+  for (const raw of entries) {
+    const entry = raw as XmlNode;
+    const title = (getTextVal(entry.title) || "").trim();
     let link = "";
     if (entry.link) {
       const links = Array.isArray(entry.link) ? entry.link : [entry.link];
       for (const l of links) {
-        const rel = typeof l === "string" ? undefined : l["@_rel"];
+        const rel = typeof l === "string" ? undefined : (l as XmlNode)["@_rel"];
         if (!rel || rel === "alternate") {
-          link = typeof l === "string" ? l : (l["@_href"] || "");
+          link = typeof l === "string" ? l : getTextVal((l as XmlNode)["@_href"]);
           break;
         }
       }
     }
-    const summary = entry.summary || entry.content || "";
-    const pubRaw = entry.published || entry.updated || "";
-    const id = (entry.id || "").trim();
+    const summary = getTextVal(entry.summary) || getTextVal(entry.content);
+    const pubRaw = getTextVal(entry.published) || getTextVal(entry.updated);
+    const id = (getTextVal(entry.id) || "").trim();
     let author: string | undefined;
     if (entry.author) {
       const a = Array.isArray(entry.author) ? entry.author[0] : entry.author;
-      author = typeof a === "string" ? a : (a.name || undefined);
+      author = typeof a === "string" ? a : getTextVal((a as XmlNode).name);
     }
     const cats: string[] = [];
     if (entry.category) {
       const raw = Array.isArray(entry.category) ? entry.category : [entry.category];
       for (const c of raw) {
-        const t = typeof c === "string" ? c.trim() : (c["@_term"] || c["#text"] || "").trim();
+        const t =
+          typeof c === "string"
+            ? c.trim()
+            : (getTextVal((c as XmlNode)["@_term"]) || getTextVal(c)).trim();
         if (t) cats.push(t);
       }
     }
@@ -132,33 +144,39 @@ export function parseRssXml(xmlText: string, feedId: string, feedName: string): 
     trimValues: true,
   });
 
-  let parsed: any;
+  let parsed: unknown;
   try {
     parsed = parser.parse(xmlText);
-  } catch (e) {
+  } catch {
     return [];
   }
 
   if (!parsed) return [];
 
+  const doc = parsed as XmlNode;
+
   // RSS 2.0
-  const rss = parsed.rss;
-  if (rss?.channel?.item) {
-    const items = Array.isArray(rss.channel.item) ? rss.channel.item : [rss.channel.item];
+  const rss = doc.rss as XmlNode | undefined;
+  const rssChannel = rss?.channel as XmlNode | undefined;
+  if (rssChannel?.item) {
+    const rawItems = rssChannel.item;
+    const items = Array.isArray(rawItems) ? rawItems : [rawItems];
     return parseRssItems(items, feedId, feedName);
   }
 
   // Atom
-  const feed = parsed.feed;
+  const feed = doc.feed as XmlNode | undefined;
   if (feed?.entry) {
-    const entries = Array.isArray(feed.entry) ? feed.entry : [feed.entry];
+    const rawEntries = feed.entry;
+    const entries = Array.isArray(rawEntries) ? rawEntries : [rawEntries];
     return parseAtomEntries(entries, feedId, feedName);
   }
 
   // RDF
-  const rdf = parsed["rdf:RDF"] || parsed.RDF;
-  if (rdf?.item) {
-    const items = Array.isArray(rdf.item) ? rdf.item : [rdf.item];
+  const rdf = (doc["rdf:RDF"] || doc.RDF) as XmlNode | undefined;
+  const rdfItems = rdf?.item;
+  if (rdfItems) {
+    const items = Array.isArray(rdfItems) ? rdfItems : [rdfItems];
     return parseRssItems(items, feedId, feedName);
   }
 

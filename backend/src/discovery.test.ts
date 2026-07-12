@@ -15,7 +15,10 @@ describe("discoverFeeds", () => {
       </head>
     </html>`;
 
-    vi.stubGlobal("fetch", vi.fn(async () => new Response(html, { status: 200 })));
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async () => new Response(html, { status: 200 }))
+    );
 
     const feeds = await discoverFeeds("https://example.com/news");
     expect(feeds).toHaveLength(2);
@@ -32,13 +35,19 @@ describe("discoverFeeds", () => {
   });
 
   it("returns an empty array when no alternate links are present", async () => {
-    vi.stubGlobal("fetch", vi.fn(async () => new Response("<html></head></body></body></html>", { status: 200 })));
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async () => new Response("<html></head></body></body></html>", { status: 200 }))
+    );
     const feeds = await discoverFeeds("https://example.com/empty");
     expect(feeds).toEqual([]);
   });
 
   it("returns an empty array when the target returns an error", async () => {
-    vi.stubGlobal("fetch", vi.fn(async () => new Response("Not found", { status: 404 })));
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async () => new Response("Not found", { status: 404 }))
+    );
     const feeds = await discoverFeeds("https://example.com/missing");
     expect(feeds).toEqual([]);
   });
@@ -51,7 +60,10 @@ describe("discoverFeeds", () => {
       </head>
     </html>`;
 
-    vi.stubGlobal("fetch", vi.fn(async () => new Response(html, { status: 200 })));
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async () => new Response(html, { status: 200 }))
+    );
 
     const feeds = await discoverFeeds("https://example.com/news");
     expect(feeds).toHaveLength(1);

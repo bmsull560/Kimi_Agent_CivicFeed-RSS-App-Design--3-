@@ -36,7 +36,12 @@ const VALIDATION_STATE: ValidatorState = {};
 function isXmlContentType(contentType: string | null): boolean {
   if (!contentType) return false;
   const lower = contentType.toLowerCase();
-  return lower.includes("xml") || lower.includes("rss") || lower.includes("atom") || lower.includes("rdf");
+  return (
+    lower.includes("xml") ||
+    lower.includes("rss") ||
+    lower.includes("atom") ||
+    lower.includes("rdf")
+  );
 }
 
 function textValue(value: unknown): string {
@@ -117,14 +122,18 @@ export async function validateFeedHealth(feed: Feed, now = Date.now()): Promise<
     try {
       parsed = parser.parse(xmlText);
     } catch (parseError) {
-      throw new Error(`XML parse error: ${parseError instanceof Error ? parseError.message : String(parseError)}`);
+      throw new Error(
+        `XML parse error: ${parseError instanceof Error ? parseError.message : String(parseError)}`,
+        { cause: parseError }
+      );
     }
 
     if (!parsed || typeof parsed !== "object") throw new Error("Parsed XML is empty");
 
     const doc = parsed as Record<string, unknown>;
     const rootKeys = Object.keys(doc);
-    const hasRssRoot = rootKeys.includes("rss") || rootKeys.some((key) => key.toLowerCase().includes("rss"));
+    const hasRssRoot =
+      rootKeys.includes("rss") || rootKeys.some((key) => key.toLowerCase().includes("rss"));
     const hasFeedRoot = rootKeys.includes("feed");
     const hasRdfRoot = rootKeys.some((key) => key.toLowerCase().includes("rdf"));
     if (!hasRssRoot && !hasFeedRoot && !hasRdfRoot) {
@@ -141,26 +150,38 @@ export async function validateFeedHealth(feed: Feed, now = Date.now()): Promise<
       if (!atomFeed.title) throw new Error("Atom: missing feed.title");
       if (!atomFeed.id && !atomFeed.title) throw new Error("Atom: missing feed.id");
 
-      items = asArray(atomFeed.entry as Record<string, unknown> | Record<string, unknown>[] | undefined);
+      items = asArray(
+        atomFeed.entry as Record<string, unknown> | Record<string, unknown>[] | undefined
+      );
       if (items.length === 0) throw new Error("Atom: no entries found");
 
       for (const entry of items) {
         if (!entry.title) throw new Error("Atom: entry missing title");
         if (!entry.id) throw new Error("Atom: entry missing id");
-        if (!entry.updated && !entry.published) throw new Error("Atom: entry missing updated/published");
+        if (!entry.updated && !entry.published)
+          throw new Error("Atom: entry missing updated/published");
         const links = asArray(entry.link as unknown);
-        const hasLink = links.some((link) => typeof link === "string" || Boolean((link as { "@_href"?: unknown })?.["@_href"]));
+        const hasLink = links.some(
+          (link) =>
+            typeof link === "string" || Boolean((link as { "@_href"?: unknown })?.["@_href"])
+        );
         if (!hasLink) throw new Error("Atom: entry missing link");
       }
     } else {
       const rss = (doc.rss as Record<string, unknown> | undefined) || doc;
-      const rdf = (doc["rdf:RDF"] as Record<string, unknown> | undefined) || (doc.RDF as Record<string, unknown> | undefined);
-      const channel = ((rss.channel as Record<string, unknown> | undefined) || rdf || rss) as Record<string, unknown>;
+      const rdf =
+        (doc["rdf:RDF"] as Record<string, unknown> | undefined) ||
+        (doc.RDF as Record<string, unknown> | undefined);
+      const channel = ((rss.channel as Record<string, unknown> | undefined) ||
+        rdf ||
+        rss) as Record<string, unknown>;
 
       const title = textValue(channel.title);
       if (!title) throw new Error("RSS: missing channel.title");
 
-      items = asArray(channel.item as Record<string, unknown> | Record<string, unknown>[] | undefined);
+      items = asArray(
+        channel.item as Record<string, unknown> | Record<string, unknown>[] | undefined
+      );
       if (items.length === 0) throw new Error("RSS: no items found");
 
       for (const item of items) {

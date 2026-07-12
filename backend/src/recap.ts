@@ -28,6 +28,25 @@ export interface WeeklyRecap {
 
 const MS_PER_DAY = 24 * 60 * 60 * 1000;
 
+interface RecapSourceRow {
+  entry_id: string;
+  feed_id: string;
+  title: string;
+  link: string;
+  pub_date: string;
+  author: string | null;
+  feed_name: string;
+  feed_category: string;
+}
+
+interface SummaryRow {
+  summary: string;
+}
+
+interface TagRow {
+  tag: string;
+}
+
 export function generateRecap(daysBack: number = 7): WeeklyRecap {
   const now = Date.now();
   const cutoff = now - daysBack * MS_PER_DAY;
@@ -48,14 +67,14 @@ export function generateRecap(daysBack: number = 7): WeeklyRecap {
     ORDER BY ac.pub_date DESC
   `);
 
-  const rows = stmt.all(cutoff) as any[];
+  const rows = stmt.all(cutoff) as RecapSourceRow[];
 
   const summaryStmt = db.prepare("SELECT summary FROM article_summaries WHERE entry_id = ?");
   const tagStmt = db.prepare("SELECT tag FROM article_tags WHERE entry_id = ?");
 
   const entries: RecapEntry[] = rows.map((r) => {
-    const sumRow = summaryStmt.get(r.entry_id) as any;
-    const tagRows = tagStmt.all(r.entry_id) as any[];
+    const sumRow = summaryStmt.get(r.entry_id) as SummaryRow | undefined;
+    const tagRows = tagStmt.all(r.entry_id) as TagRow[];
     return {
       entryId: r.entry_id,
       feedId: r.feed_id,
@@ -66,7 +85,7 @@ export function generateRecap(daysBack: number = 7): WeeklyRecap {
       pubDate: r.pub_date,
       author: r.author,
       aiSummary: sumRow?.summary,
-      aiTags: tagRows.map((t: any) => t.tag),
+      aiTags: tagRows.map((t: TagRow) => t.tag),
     };
   });
 

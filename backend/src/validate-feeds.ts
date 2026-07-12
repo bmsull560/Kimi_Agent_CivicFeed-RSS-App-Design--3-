@@ -100,7 +100,10 @@ function printIssueReport(health: FeedHealth[]) {
 
   console.log("\nIssue report:");
   for (const [reason, items] of [...grouped.entries()].sort((a, b) => b[1].length - a[1].length)) {
-    const sample = items.slice(0, 5).map((item) => item.feedId).join(", ");
+    const sample = items
+      .slice(0, 5)
+      .map((item) => item.feedId)
+      .join(", ");
     console.log(`  ${reason}: ${items.length}${sample ? ` (${sample})` : ""}`);
   }
 }
@@ -108,7 +111,12 @@ function printIssueReport(health: FeedHealth[]) {
 function isXmlContentType(contentType: string | null): boolean {
   if (!contentType) return false;
   const lower = contentType.toLowerCase();
-  return lower.includes("xml") || lower.includes("rss") || lower.includes("atom") || lower.includes("rdf");
+  return (
+    lower.includes("xml") ||
+    lower.includes("rss") ||
+    lower.includes("atom") ||
+    lower.includes("rdf")
+  );
 }
 
 function textValue(value: unknown): string {
@@ -171,7 +179,11 @@ async function fetchWithRedirects(
     clearTimeout(timer);
     const message = error instanceof Error ? error.message : String(error);
     if (message.toLowerCase().includes("abort")) {
-      return { response: new Response(), redirectCount: redirects, error: `Timeout after ${TIMEOUT_MS}ms` };
+      return {
+        response: new Response(),
+        redirectCount: redirects,
+        error: `Timeout after ${TIMEOUT_MS}ms`,
+      };
     }
     return { response: new Response(), redirectCount: redirects, error: message };
   }
@@ -224,14 +236,18 @@ async function validateFeed(feed: Feed, state: ValidatorState): Promise<FeedHeal
     try {
       parsed = parser.parse(xmlText);
     } catch (parseError) {
-      throw new Error(`XML parse error: ${parseError instanceof Error ? parseError.message : String(parseError)}`);
+      throw new Error(
+        `XML parse error: ${parseError instanceof Error ? parseError.message : String(parseError)}`,
+        { cause: parseError }
+      );
     }
 
     if (!parsed || typeof parsed !== "object") throw new Error("Parsed XML is empty");
 
     const doc = parsed as Record<string, unknown>;
     const rootKeys = Object.keys(doc);
-    const hasRssRoot = rootKeys.includes("rss") || rootKeys.some((key) => key.toLowerCase().includes("rss"));
+    const hasRssRoot =
+      rootKeys.includes("rss") || rootKeys.some((key) => key.toLowerCase().includes("rss"));
     const hasFeedRoot = rootKeys.includes("feed");
     const hasRdfRoot = rootKeys.some((key) => key.toLowerCase().includes("rdf"));
     if (!hasRssRoot && !hasFeedRoot && !hasRdfRoot) {
@@ -248,26 +264,38 @@ async function validateFeed(feed: Feed, state: ValidatorState): Promise<FeedHeal
       if (!atomFeed.title) throw new Error("Atom: missing feed.title");
       if (!atomFeed.id && !atomFeed.title) throw new Error("Atom: missing feed.id");
 
-      items = asArray(atomFeed.entry as Record<string, unknown> | Record<string, unknown>[] | undefined);
+      items = asArray(
+        atomFeed.entry as Record<string, unknown> | Record<string, unknown>[] | undefined
+      );
       if (items.length === 0) throw new Error("Atom: no entries found");
 
       for (const entry of items) {
         if (!entry.title) throw new Error("Atom: entry missing title");
         if (!entry.id) throw new Error("Atom: entry missing id");
-        if (!entry.updated && !entry.published) throw new Error("Atom: entry missing updated/published");
+        if (!entry.updated && !entry.published)
+          throw new Error("Atom: entry missing updated/published");
         const links = asArray(entry.link as unknown);
-        const hasLink = links.some((link) => typeof link === "string" || Boolean((link as { "@_href"?: unknown })?.["@_href"]));
+        const hasLink = links.some(
+          (link) =>
+            typeof link === "string" || Boolean((link as { "@_href"?: unknown })?.["@_href"])
+        );
         if (!hasLink) throw new Error("Atom: entry missing link");
       }
     } else {
       const rss = (doc.rss as Record<string, unknown> | undefined) || doc;
-      const rdf = (doc["rdf:RDF"] as Record<string, unknown> | undefined) || (doc.RDF as Record<string, unknown> | undefined);
-      const channel = ((rss.channel as Record<string, unknown> | undefined) || rdf || rss) as Record<string, unknown>;
+      const rdf =
+        (doc["rdf:RDF"] as Record<string, unknown> | undefined) ||
+        (doc.RDF as Record<string, unknown> | undefined);
+      const channel = ((rss.channel as Record<string, unknown> | undefined) ||
+        rdf ||
+        rss) as Record<string, unknown>;
 
       const title = textValue(channel.title);
       if (!title) throw new Error("RSS: missing channel.title");
 
-      items = asArray(channel.item as Record<string, unknown> | Record<string, unknown>[] | undefined);
+      items = asArray(
+        channel.item as Record<string, unknown> | Record<string, unknown>[] | undefined
+      );
       if (items.length === 0) throw new Error("RSS: no items found");
 
       for (const item of items) {
@@ -395,7 +423,9 @@ async function main() {
       else fail++;
     }
 
-    process.stdout.write(`\rProgress: ${Math.min(index + batchSize, selected.length)}/${selected.length} (ok=${ok} warn=${warn} fail=${fail})`);
+    process.stdout.write(
+      `\rProgress: ${Math.min(index + batchSize, selected.length)}/${selected.length} (ok=${ok} warn=${warn} fail=${fail})`
+    );
     if (index + batchSize < selected.length) {
       await new Promise((resolve) => setTimeout(resolve, 500));
     }
@@ -413,8 +443,13 @@ async function main() {
     }
   }
 
-  if (options.strict && (warn > 0 || fail > 0 || ok !== selected.length || health.length !== selected.length)) {
-    console.error(`Strict feed validation failed: ${ok}/${selected.length} feeds are ok, ${warn} warn, ${fail} fail.`);
+  if (
+    options.strict &&
+    (warn > 0 || fail > 0 || ok !== selected.length || health.length !== selected.length)
+  ) {
+    console.error(
+      `Strict feed validation failed: ${ok}/${selected.length} feeds are ok, ${warn} warn, ${fail} fail.`
+    );
     process.exit(1);
   }
 }

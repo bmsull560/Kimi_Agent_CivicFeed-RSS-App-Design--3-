@@ -27,9 +27,21 @@ describe("recap", () => {
 
     const now = Date.now();
     const entries = [
-      makeEntry({ id: "recap-1", title: "Article One", description: "First article.", fetchedAt: now }, feedIdA, "Feed A"),
-      makeEntry({ id: "recap-2", title: "Article Two", description: "Second article.", fetchedAt: now }, feedIdA, "Feed A"),
-      makeEntry({ id: "recap-3", title: "Article Three", description: "Third article.", fetchedAt: now }, feedIdB, "Feed B"),
+      makeEntry(
+        { id: "recap-1", title: "Article One", description: "First article.", fetchedAt: now },
+        feedIdA,
+        "Feed A"
+      ),
+      makeEntry(
+        { id: "recap-2", title: "Article Two", description: "Second article.", fetchedAt: now },
+        feedIdA,
+        "Feed A"
+      ),
+      makeEntry(
+        { id: "recap-3", title: "Article Three", description: "Third article.", fetchedAt: now },
+        feedIdB,
+        "Feed B"
+      ),
     ];
 
     saveArticles(feedIdA, entries.slice(0, 2));
@@ -37,7 +49,12 @@ describe("recap", () => {
 
     // Enrich two articles with overlapping tags so top tags are populated.
     await enrichArticle("recap-1", feedIdA, "Article One", "First article about parks and roads.");
-    await enrichArticle("recap-2", feedIdA, "Article Two", "Second article about parks and schools.");
+    await enrichArticle(
+      "recap-2",
+      feedIdA,
+      "Article Two",
+      "Second article about parks and schools."
+    );
 
     const recap = generateRecap(7);
 

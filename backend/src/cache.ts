@@ -16,6 +16,23 @@ export interface CachedArticle {
   fetchedAt: number;
 }
 
+interface CacheRow {
+  id: number;
+  feed_id: string;
+  entry_id: string;
+  title: string;
+  link: string;
+  description: string;
+  pub_date: string;
+  author: string | null;
+  categories: string | null;
+  fetched_at: number;
+}
+
+interface CountRow {
+  c: number;
+}
+
 export function getCachedArticles(feedId: string): CachedArticle[] | null {
   const stmt = db.prepare(`
     SELECT * FROM article_cache
@@ -23,7 +40,7 @@ export function getCachedArticles(feedId: string): CachedArticle[] | null {
     ORDER BY pub_date DESC
   `);
   const minTime = Date.now() - CACHE_TTL_MS;
-  const rows = stmt.all(feedId, minTime) as any[];
+  const rows = stmt.all(feedId, minTime) as CacheRow[];
 
   if (rows.length === 0) return null;
 
@@ -71,7 +88,9 @@ export function saveArticles(feedId: string, entries: RssEntry[]) {
 }
 
 export function cacheStats(): { total: number; feeds: number } {
-  const total = (db.prepare("SELECT COUNT(*) as c FROM article_cache").get() as any).c;
-  const feeds = (db.prepare("SELECT COUNT(DISTINCT feed_id) as c FROM article_cache").get() as any).c;
+  const total = (db.prepare("SELECT COUNT(*) as c FROM article_cache").get() as CountRow).c;
+  const feeds = (
+    db.prepare("SELECT COUNT(DISTINCT feed_id) as c FROM article_cache").get() as CountRow
+  ).c;
   return { total, feeds };
 }

@@ -47,7 +47,25 @@ export function enqueueArticleEnrichment(
  * Count pending enrichment jobs.
  */
 export function getPendingEnrichmentCount(): number {
-  return (db.prepare("SELECT COUNT(*) as c FROM enrichment_jobs WHERE status = 'pending'").get() as { c: number }).c;
+  return (
+    db.prepare("SELECT COUNT(*) as c FROM enrichment_jobs WHERE status = 'pending'").get() as {
+      c: number;
+    }
+  ).c;
+}
+
+interface JobRow {
+  id: number;
+  entry_id: string;
+  feed_id: string;
+  title: string;
+  description: string;
+  status: string;
+  priority: number;
+  created_at: number;
+  started_at: number | null;
+  finished_at: number | null;
+  error: string | null;
 }
 
 function claimPendingJobs(batchSize: number): EnrichmentJob[] {
@@ -65,7 +83,7 @@ function claimPendingJobs(batchSize: number): EnrichmentJob[] {
   `);
 
   const claimed: EnrichmentJob[] = [];
-  const candidates = select.all(batchSize) as any[];
+  const candidates = select.all(batchSize) as JobRow[];
 
   for (const row of candidates) {
     const changes = markRunning.run(Date.now(), row.id).changes;
@@ -90,13 +108,16 @@ function claimPendingJobs(batchSize: number): EnrichmentJob[] {
 }
 
 function markJobDone(jobId: number): void {
-  db.prepare("UPDATE enrichment_jobs SET status = 'done', finished_at = ? WHERE id = ?")
-    .run(Date.now(), jobId);
+  db.prepare("UPDATE enrichment_jobs SET status = 'done', finished_at = ? WHERE id = ?").run(
+    Date.now(),
+    jobId
+  );
 }
 
 function markJobFailed(jobId: number, error: string): void {
-  db.prepare("UPDATE enrichment_jobs SET status = 'failed', finished_at = ?, error = ? WHERE id = ?")
-    .run(Date.now(), error, jobId);
+  db.prepare(
+    "UPDATE enrichment_jobs SET status = 'failed', finished_at = ?, error = ? WHERE id = ?"
+  ).run(Date.now(), error, jobId);
 }
 
 async function withConcurrency<T>(

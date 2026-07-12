@@ -13,7 +13,9 @@ describe("migrations", () => {
   it("applies all civicfeed migrations on a fresh database", () => {
     applyMigrations(db, civicfeedMigrations);
 
-    const tables = db.prepare("SELECT name FROM sqlite_master WHERE type='table' ORDER BY name").all() as { name: string }[];
+    const tables = db
+      .prepare("SELECT name FROM sqlite_master WHERE type='table' ORDER BY name")
+      .all() as { name: string }[];
     const tableNames = tables.map((t) => t.name);
     expect(tableNames).toContain("feeds");
     expect(tableNames).toContain("article_cache");
@@ -79,9 +81,7 @@ describe("migrations", () => {
     applyMigrations(db, aheadMigration);
 
     const rolledBackMigration: Migration[] = [aheadMigration[0]];
-    expect(() => applyMigrations(db, rolledBackMigration)).toThrow(
-      /ahead of application code/
-    );
+    expect(() => applyMigrations(db, rolledBackMigration)).toThrow(/ahead of application code/);
   });
 
   it("logs applied migrations", () => {
@@ -123,14 +123,24 @@ describe("migrations", () => {
 
     applyMigrations(db, civicfeedMigrations);
 
-    const tableInfo = db.prepare("PRAGMA table_xinfo(article_search)").all() as { name: string; hidden: number }[];
+    const tableInfo = db.prepare("PRAGMA table_xinfo(article_search)").all() as {
+      name: string;
+      hidden: number;
+    }[];
     expect(tableInfo.some((c) => c.name === "rank")).toBe(true);
   });
 
   it("populates article_search from existing article_cache", () => {
     applyMigrations(db, civicfeedMigrations);
-    db.prepare("INSERT INTO article_cache (feed_id, entry_id, title, link, pub_date, fetched_at) VALUES (?, ?, ?, ?, ?, ?)").run(
-      "feed-1", "entry-1", "Test Title", "https://example.com", new Date().toISOString(), Date.now()
+    db.prepare(
+      "INSERT INTO article_cache (feed_id, entry_id, title, link, pub_date, fetched_at) VALUES (?, ?, ?, ?, ?, ?)"
+    ).run(
+      "feed-1",
+      "entry-1",
+      "Test Title",
+      "https://example.com",
+      new Date().toISOString(),
+      Date.now()
     );
 
     const count = (db.prepare("SELECT COUNT(*) as c FROM article_search").get() as { c: number }).c;

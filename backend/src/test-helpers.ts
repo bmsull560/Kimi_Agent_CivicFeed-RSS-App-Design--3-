@@ -3,17 +3,19 @@ import type { RssEntry } from "./rss.js";
 
 let feedCounter = 0;
 
-export function insertTestFeed(overrides: Partial<{
-  id: string;
-  name: string;
-  shortName: string;
-  agency: string;
-  rssUrl: string;
-  website: string;
-  category: string;
-  status: string;
-  tags: string[];
-}> = {}) {
+export function insertTestFeed(
+  overrides: Partial<{
+    id: string;
+    name: string;
+    shortName: string;
+    agency: string;
+    rssUrl: string;
+    website: string;
+    category: string;
+    status: string;
+    tags: string[];
+  }> = {}
+) {
   feedCounter++;
   const id = overrides.id ?? `test-feed-${feedCounter}`;
   const insert = db.prepare(`
@@ -40,7 +42,11 @@ export function insertTestFeed(overrides: Partial<{
   return id;
 }
 
-export function makeEntry(overrides: Partial<RssEntry> = {}, feedId = "test-feed-1", feedName = "Test Feed"): RssEntry {
+export function makeEntry(
+  overrides: Partial<RssEntry> = {},
+  feedId = "test-feed-1",
+  feedName = "Test Feed"
+): RssEntry {
   const now = Date.now();
   return {
     id: `entry-${now}`,

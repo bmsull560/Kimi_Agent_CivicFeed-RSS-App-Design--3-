@@ -75,7 +75,11 @@ describe("parseRssXml", () => {
   });
 
   it("returns an empty array when no items are present", () => {
-    const entries = parseRssXml("<?xml version='1.0'?><rss><channel></channel></rss>", "feed-5", "Empty");
+    const entries = parseRssXml(
+      "<?xml version='1.0'?><rss><channel></channel></rss>",
+      "feed-5",
+      "Empty"
+    );
     expect(entries).toEqual([]);
   });
 

@@ -33,7 +33,14 @@ function getAppliedIds(db: Database.Database): number[] {
  *   prevents an older code version from running against a newer database.
  * - The helper is idempotent: already-applied migrations are skipped.
  */
-export function applyMigrations(db: Database.Database, migrations: Migration[], logger?: { info: (msg: string, ctx?: Record<string, unknown>) => void; warn: (msg: string, ctx?: Record<string, unknown>) => void }) {
+export function applyMigrations(
+  db: Database.Database,
+  migrations: Migration[],
+  logger?: {
+    info: (msg: string, ctx?: Record<string, unknown>) => void;
+    warn: (msg: string, ctx?: Record<string, unknown>) => void;
+  }
+) {
   ensureMigrationsTable(db);
 
   const sorted = [...migrations].sort((a, b) => a.id - b.id);
@@ -63,7 +70,9 @@ export function applyMigrations(db: Database.Database, migrations: Migration[], 
   }
 
   if (applied.length < sorted.length) {
-    logger?.info("migrations up to date", { appliedCount: applied.length + (sorted.length - applied.length) });
+    logger?.info("migrations up to date", {
+      appliedCount: applied.length + (sorted.length - applied.length),
+    });
   }
 }
 
@@ -136,7 +145,10 @@ export const civicfeedMigrations: Migration[] = [
     name: "fts5_search_index",
     up: (db) => {
       // Ensure we are using the self-contained FTS5 table (not the old contentless schema).
-      const tableInfo = db.prepare("PRAGMA table_xinfo(article_search)").all() as { name: string; hidden: number }[];
+      const tableInfo = db.prepare("PRAGMA table_xinfo(article_search)").all() as {
+        name: string;
+        hidden: number;
+      }[];
       const hasRankCol = tableInfo.some((c) => c.name === "rank");
       if (tableInfo.length > 0 && !hasRankCol) {
         db.exec(`DROP TABLE IF EXISTS article_search;`);
@@ -168,16 +180,24 @@ export const civicfeedMigrations: Migration[] = [
       `);
 
       // Populate the FTS index from existing cached articles if it is empty.
-      const ftsCount = (db.prepare("SELECT COUNT(*) as c FROM article_search").get() as { c: number }).c;
-      const cacheCount = (db.prepare("SELECT COUNT(*) as c FROM article_cache").get() as { c: number }).c;
+      const ftsCount = (
+        db.prepare("SELECT COUNT(*) as c FROM article_search").get() as { c: number }
+      ).c;
+      const cacheCount = (
+        db.prepare("SELECT COUNT(*) as c FROM article_cache").get() as { c: number }
+      ).c;
       if (ftsCount === 0 && cacheCount > 0) {
-        const rows = db.prepare("SELECT entry_id, title, description, categories FROM article_cache").all() as {
+        const rows = db
+          .prepare("SELECT entry_id, title, description, categories FROM article_cache")
+          .all() as {
           entry_id: string;
           title: string;
           description: string | null;
           categories: string | null;
         }[];
-        const insert = db.prepare("INSERT INTO article_search(entry_id, title, description, summary, tags) VALUES (?, ?, ?, ?, ?)");
+        const insert = db.prepare(
+          "INSERT INTO article_search(entry_id, title, description, summary, tags) VALUES (?, ?, ?, ?, ?)"
+        );
         db.transaction(() => {
           for (const r of rows) {
             insert.run(r.entry_id, r.title, r.description || "", "", r.categories || "");

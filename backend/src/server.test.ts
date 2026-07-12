@@ -36,7 +36,7 @@ describe("server", () => {
     const res = await request(app).get("/api/feeds");
     expect(res.status).toBe(200);
     expect(Array.isArray(res.body.feeds)).toBe(true);
-    expect(res.body.feeds.some((f: any) => f.id === "feed-server")).toBe(true);
+    expect(res.body.feeds.some((f: { id: string }) => f.id === "feed-server")).toBe(true);
   });
 
   it("GET /api/feeds/:id returns a single feed", async () => {
@@ -64,7 +64,10 @@ describe("server", () => {
   </channel>
 </rss>`;
 
-    vi.stubGlobal("fetch", vi.fn(async () => new Response(xml, { status: 200 })));
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async () => new Response(xml, { status: 200 }))
+    );
 
     // Initial request returns articles immediately; enrichment is queued.
     const res = await request(app).get("/api/feeds/feed-server/articles");
@@ -83,7 +86,9 @@ describe("server", () => {
   });
 
   it("GET /api/search returns results", async () => {
-    saveArticles("feed-server", [makeEntry({ id: "searchable", title: "Searchable Article" }, "feed-server")]);
+    saveArticles("feed-server", [
+      makeEntry({ id: "searchable", title: "Searchable Article" }, "feed-server"),
+    ]);
 
     const res = await request(app).get("/api/search?q=Searchable");
     expect(res.status).toBe(200);
@@ -99,7 +104,9 @@ describe("server", () => {
   });
 
   it("GET /api/recap returns a recap", async () => {
-    saveArticles("feed-server", [makeEntry({ id: "recap", title: "Recap Article" }, "feed-server")]);
+    saveArticles("feed-server", [
+      makeEntry({ id: "recap", title: "Recap Article" }, "feed-server"),
+    ]);
 
     const res = await request(app).get("/api/recap?days=7");
     expect(res.status).toBe(200);
@@ -150,7 +157,10 @@ describe("server", () => {
   </channel>
 </rss>`;
 
-      vi.stubGlobal("fetch", vi.fn(async () => new Response(xml, { status: 200 })));
+      vi.stubGlobal(
+        "fetch",
+        vi.fn(async () => new Response(xml, { status: 200 }))
+      );
 
       const articleRes = await request(app).get(`/api/feeds/${statusFeedId}/articles`);
       expect(articleRes.status).toBe(200);
@@ -167,7 +177,10 @@ describe("server", () => {
     });
 
     it("GET /api/feeds/:id/status reflects a failed fetch", async () => {
-      vi.stubGlobal("fetch", vi.fn(async () => new Response("Server Error", { status: 500 })));
+      vi.stubGlobal(
+        "fetch",
+        vi.fn(async () => new Response("Server Error", { status: 500 }))
+      );
 
       const articleRes = await request(app).get(`/api/feeds/${statusFeedId}/articles`);
       expect(articleRes.status).toBe(502);
