@@ -301,25 +301,7 @@ _For human/AI reference: follow priority 1→10 to decide which rule category to
 
 ## How to Use
 
-Search specific domains using the CLI tool below.
-
----
-
-## Prerequisites
-
-The bundled scripts require Python 3 (standard library only — no third-party packages, no network access). Check if it is available:
-
-```bash
-python3 --version || python --version
-```
-
-If Python is not installed, **do not install it yourself**. Stop and ask the user to install Python 3 using their preferred method (e.g. from [python.org](https://www.python.org/downloads/) or their OS package manager), then continue once it is available. Never run package-manager or system-modifying commands (`sudo`, `brew`, `apt`, `winget`, etc.) on the user's machine for this skill.
-
-If the user prefers not to install Python, skip the CLI searches and rely on the Quick Reference sections above.
-
-> **Note:** On Windows, use `python` instead of `python3` to run scripts (e.g., `python scripts/search.py` instead of `python3 scripts/search.py`).
-
----
+Use the Quick Reference sections, rule categories, and checklists below. This repository vendors this skill as a **reference-only** document — the upstream Python CLI and data files under `scripts/` and `data/` are not included. If you want CLI-based searching, vendor the upstream scripts and data into `.kimi-code/skills/ui-ux-pro-max/` first.
 
 ## How to Use This Skill
 

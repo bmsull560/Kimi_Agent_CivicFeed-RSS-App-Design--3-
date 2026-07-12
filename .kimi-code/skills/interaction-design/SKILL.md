@@ -158,6 +158,8 @@ function PageTransition({ children, key }) {
 **Ripple effect on click**:
 
 ```tsx
+import { useState } from "react";
+
 function RippleButton({ children, onClick }) {
   const [ripples, setRipples] = useState([]);
 

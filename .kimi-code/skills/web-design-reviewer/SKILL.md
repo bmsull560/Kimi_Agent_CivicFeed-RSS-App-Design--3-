@@ -172,11 +172,11 @@ Identify source files from problematic elements:
 
 1. **Selector-based Search**
    - Search codebase by class name or ID
-   - Explore style definitions with `grep_search`
+   - Use whatever code-search tooling is available (e.g., grep, ripgrep, or the agent's search tool)
 
 2. **Component-based Search**
    - Identify components from element text or structure
-   - Explore related files with `semantic_search`
+   - Use any available semantic or code search to locate related files
 
 3. **File Pattern Filtering**
    ```
