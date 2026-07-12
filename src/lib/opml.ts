@@ -85,7 +85,8 @@ export function generateOpml(feeds: Feed[], title = "CivicFeed Subscriptions"): 
   const date = new Date().toUTCString();
   const outlines = feeds
     .map(
-      feed => `    <outline type="rss" text="${escapeXml(feed.name)}" title="${escapeXml(feed.name)}" xmlUrl="${escapeXml(feed.rssUrl)}" htmlUrl="${escapeXml(feed.website || "")}" />`,
+      (feed) =>
+        `    <outline type="rss" text="${escapeXml(feed.name)}" title="${escapeXml(feed.name)}" xmlUrl="${escapeXml(feed.rssUrl)}" htmlUrl="${escapeXml(feed.website || "")}" />`
     )
     .join("\n");
 
@@ -101,8 +102,11 @@ ${outlines}
 </opml>`;
 }
 
-export function parsedOpmlToUserFeeds(parsed: ParsedOpmlFeed[], defaultCategory = "General"): UserFeed[] {
-  return parsed.map(p =>
+export function parsedOpmlToUserFeeds(
+  parsed: ParsedOpmlFeed[],
+  defaultCategory = "General"
+): UserFeed[] {
+  return parsed.map((p) =>
     createUserFeed({
       name: p.name,
       shortName: p.name,
@@ -116,6 +120,6 @@ export function parsedOpmlToUserFeeds(parsed: ParsedOpmlFeed[], defaultCategory 
       contentType: "",
       updateFrequency: "",
       tags: [],
-    }),
+    })
   );
 }

@@ -5,16 +5,26 @@ import { insertTestFeed } from "./test-helpers.js";
 
 const testFeedId = "scheduler-test-feed";
 
+interface FetchStatusRow {
+  feed_id: string;
+  next_fetch_at: number | null;
+  success_count: number;
+  attempt_count: number;
+  failure_count: number;
+}
+
 describe("scheduler", () => {
   beforeEach(() => {
     // Ensure only our test feed is considered due by pushing every other feed
     // into the future. This also creates status rows for feeds that lack them.
-    db.prepare(`
+    db.prepare(
+      `
       INSERT INTO feed_fetch_status (feed_id, next_fetch_at)
       SELECT id, ? FROM feeds
       WHERE id != ?
       ON CONFLICT(feed_id) DO UPDATE SET next_fetch_at = excluded.next_fetch_at
-    `).run(Date.now() + 24 * 60 * 60 * 1000, testFeedId);
+    `
+    ).run(Date.now() + 24 * 60 * 60 * 1000, testFeedId);
 
     // Clean up any leftover test feed data and re-create the feed.
     db.prepare("DELETE FROM article_cache WHERE feed_id = ?").run(testFeedId);
@@ -48,29 +58,41 @@ describe("scheduler", () => {
   </channel>
 </rss>`;
 
-    vi.stubGlobal("fetch", vi.fn(async () => new Response(xml, { status: 200 })));
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async () => new Response(xml, { status: 200 }))
+    );
 
     const summary = await refreshDueFeeds(db);
     expect(summary.processed).toBeGreaterThanOrEqual(1);
     expect(summary.succeeded).toBeGreaterThanOrEqual(1);
 
-    const status = db.prepare("SELECT * FROM feed_fetch_status WHERE feed_id = ?").get(testFeedId) as any;
+    const status = db
+      .prepare("SELECT * FROM feed_fetch_status WHERE feed_id = ?")
+      .get(testFeedId) as FetchStatusRow | undefined;
     expect(status).toBeTruthy();
-    expect(status.success_count).toBe(1);
-    expect(status.attempt_count).toBe(1);
+    expect(status!.success_count).toBe(1);
+    expect(status!.attempt_count).toBe(1);
 
-    const cached = db.prepare("SELECT COUNT(*) as c FROM article_cache WHERE feed_id = ?").get(testFeedId) as any;
+    const cached = db
+      .prepare("SELECT COUNT(*) as c FROM article_cache WHERE feed_id = ?")
+      .get(testFeedId) as { c: number };
     expect(cached.c).toBe(1);
   });
 
   it("records failures for unreachable feeds", async () => {
-    vi.stubGlobal("fetch", vi.fn(async () => new Response("Server Error", { status: 500 })));
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async () => new Response("Server Error", { status: 500 }))
+    );
 
     const summary = await refreshDueFeeds(db);
     const feedError = summary.errors.find((e) => e.includes(testFeedId));
     expect(feedError).toBeTruthy();
 
-    const status = db.prepare("SELECT * FROM feed_fetch_status WHERE feed_id = ?").get(testFeedId) as any;
-    expect(status.failure_count).toBe(1);
+    const status = db
+      .prepare("SELECT * FROM feed_fetch_status WHERE feed_id = ?")
+      .get(testFeedId) as FetchStatusRow | undefined;
+    expect(status!.failure_count).toBe(1);
   });
 });

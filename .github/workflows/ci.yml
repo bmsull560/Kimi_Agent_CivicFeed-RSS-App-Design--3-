@@ -42,6 +42,9 @@ jobs:
       - name: Lint
         run: npm run lint
 
+      - name: Format check
+        run: npm run format:check
+
       - name: Type check
         run: npm run type-check
 
@@ -104,6 +107,10 @@ jobs:
       - name: Type check backend
         working-directory: backend
         run: npm run type-check
+
+      - name: Lint backend
+        working-directory: backend
+        run: npm run lint
 
       - name: Run backend tests
         working-directory: backend

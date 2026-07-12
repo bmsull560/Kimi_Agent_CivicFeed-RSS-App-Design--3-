@@ -52,10 +52,34 @@ function liveTestRss(title = "Live Test Entry") {
 
 const feeds = {
   "/feed.xml": () => liveTestRss(),
-  "/feed-001.xml": () => singleEntryRss("Smoke Test Entry", "Deterministic browser smoke entry.", "browser-smoke-entry", "https://www.trade.gov/test-entry"),
-  "/test-feed.xml": () => singleEntryRss("Added Feed Entry", "Deterministic browser test entry.", "browser-test-entry", "https://example.com/test-entry"),
-  "/discovered.xml": () => singleEntryRss("Discovered Entry", "Discovered from a website URL.", "discovered-entry", "https://example.com/discovered"),
-  "/imported.xml": () => singleEntryRss("Imported Entry", "Imported via OPML.", "imported-entry", "https://example.com/imported"),
+  "/feed-001.xml": () =>
+    singleEntryRss(
+      "Smoke Test Entry",
+      "Deterministic browser smoke entry.",
+      "browser-smoke-entry",
+      "https://www.trade.gov/test-entry"
+    ),
+  "/test-feed.xml": () =>
+    singleEntryRss(
+      "Added Feed Entry",
+      "Deterministic browser test entry.",
+      "browser-test-entry",
+      "https://example.com/test-entry"
+    ),
+  "/discovered.xml": () =>
+    singleEntryRss(
+      "Discovered Entry",
+      "Discovered from a website URL.",
+      "discovered-entry",
+      "https://example.com/discovered"
+    ),
+  "/imported.xml": () =>
+    singleEntryRss(
+      "Imported Entry",
+      "Imported via OPML.",
+      "imported-entry",
+      "https://example.com/imported"
+    ),
   "/unsafe-feed.xml": () => `<?xml version="1.0" encoding="UTF-8" ?>
 <rss version="2.0">
   <channel>

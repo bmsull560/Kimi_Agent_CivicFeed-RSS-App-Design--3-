@@ -21,7 +21,8 @@ const sandbox = {
 sandbox.module.exports = sandbox.exports;
 vm.runInNewContext(compiled, sandbox, { filename: feedsPath });
 
-const { feeds, feedStats, categoryList, getFeedsByCategory, getFeedById, searchFeeds } = sandbox.exports;
+const { feeds, feedStats, categoryList, getFeedsByCategory, getFeedById, searchFeeds } =
+  sandbox.exports;
 const failures = [];
 
 function fail(message) {
@@ -66,7 +67,17 @@ if (failures.length === 0) {
     if (ids.has(feed.id)) fail(`duplicate feed id ${feed.id}`);
     ids.add(feed.id);
 
-    for (const field of ["name", "shortName", "agency", "description", "rssUrl", "website", "category", "subCategory", "contentType"]) {
+    for (const field of [
+      "name",
+      "shortName",
+      "agency",
+      "description",
+      "rssUrl",
+      "website",
+      "category",
+      "subCategory",
+      "contentType",
+    ]) {
       if (typeof feed[field] !== "string" || feed[field].trim() === "") {
         fail(`${label} is missing non-empty ${field}`);
       }
@@ -74,7 +85,8 @@ if (failures.length === 0) {
 
     if (!isHttpsUrl(feed.rssUrl)) fail(`${label} rssUrl must be an absolute HTTPS URL`);
     if (!isHttpsUrl(feed.website)) fail(`${label} website must be an absolute HTTPS URL`);
-    if (!categories.has(feed.category)) fail(`${label} category "${feed.category}" is not in categoryList`);
+    if (!categories.has(feed.category))
+      fail(`${label} category "${feed.category}" is not in categoryList`);
     if (!validStatuses.has(feed.status)) fail(`${label} has invalid status ${feed.status}`);
     if (feed.priority !== undefined && !validPriorities.has(feed.priority)) {
       fail(`${label} has invalid priority ${feed.priority}`);
@@ -97,11 +109,15 @@ if (failures.length === 0) {
 
   for (const category of categoryList) {
     if (feedStats.byCategory?.[category] !== byCategory[category]) {
-      fail(`feedStats.byCategory["${category}"] is ${feedStats.byCategory?.[category]}, expected ${byCategory[category]}`);
+      fail(
+        `feedStats.byCategory["${category}"] is ${feedStats.byCategory?.[category]}, expected ${byCategory[category]}`
+      );
     }
     const filtered = getFeedsByCategory(category);
     if (filtered.length !== byCategory[category]) {
-      fail(`getFeedsByCategory("${category}") returned ${filtered.length}, expected ${byCategory[category]}`);
+      fail(
+        `getFeedsByCategory("${category}") returned ${filtered.length}, expected ${byCategory[category]}`
+      );
     }
   }
 
@@ -118,7 +134,8 @@ if (failures.length === 0) {
   if (!searchFeeds(firstFeed.shortName).some((feed) => feed.id === firstFeed.id)) {
     fail("searchFeeds should find the first feed by agency/name");
   }
-  if (searchFeeds("environment").length === 0) fail("searchFeeds should find feeds by category/tag");
+  if (searchFeeds("environment").length === 0)
+    fail("searchFeeds should find feeds by category/tag");
 }
 
 if (failures.length > 0) {

@@ -52,7 +52,9 @@ function migrateUserData(parsed: Partial<UserData>): UserData {
       ? parsed.feeds.filter((f): f is UserFeed => !!f && f.userAdded === true)
       : base.feeds,
     articleState: {
-      read: Array.isArray(parsed.articleState?.read) ? parsed.articleState.read : base.articleState.read,
+      read: Array.isArray(parsed.articleState?.read)
+        ? parsed.articleState.read
+        : base.articleState.read,
       bookmarked: Array.isArray(parsed.articleState?.bookmarked)
         ? parsed.articleState.bookmarked
         : base.articleState.bookmarked,
@@ -92,7 +94,9 @@ function stableFeedId(input: string): string {
   return `user-${Math.abs(hash).toString(36)}`;
 }
 
-export function createUserFeed(partial: Omit<Feed, "id" | "status" | "userAdded" | "enabled" | "addedAt">): UserFeed {
+export function createUserFeed(
+  partial: Omit<Feed, "id" | "status" | "userAdded" | "enabled" | "addedAt">
+): UserFeed {
   return {
     ...partial,
     id: stableFeedId(partial.rssUrl),
@@ -105,23 +109,23 @@ export function createUserFeed(partial: Omit<Feed, "id" | "status" | "userAdded"
 
 export function getAllFeeds(staticFeeds: Feed[]): Feed[] {
   const userData = loadUserData();
-  const userFeedMap = new Map(userData.feeds.map(f => [f.id, f]));
-  const merged = staticFeeds.map(f => userFeedMap.get(f.id) ?? f);
-  const staticIds = new Set(staticFeeds.map(f => f.id));
-  const addedOnly = userData.feeds.filter(f => !staticIds.has(f.id));
+  const userFeedMap = new Map(userData.feeds.map((f) => [f.id, f]));
+  const merged = staticFeeds.map((f) => userFeedMap.get(f.id) ?? f);
+  const staticIds = new Set(staticFeeds.map((f) => f.id));
+  const addedOnly = userData.feeds.filter((f) => !staticIds.has(f.id));
   return [...merged, ...addedOnly];
 }
 
 export function getEnabledFeeds(staticFeeds: Feed[]): Feed[] {
-  return getAllFeeds(staticFeeds).filter(f => {
+  return getAllFeeds(staticFeeds).filter((f) => {
     if (f.userAdded === true) return f.enabled;
     return true;
   });
 }
 
 export function addUserFeed(feed: UserFeed): UserData {
-  return withUpdatedData(data => {
-    const existingIndex = data.feeds.findIndex(f => f.rssUrl === feed.rssUrl || f.id === feed.id);
+  return withUpdatedData((data) => {
+    const existingIndex = data.feeds.findIndex((f) => f.rssUrl === feed.rssUrl || f.id === feed.id);
     if (existingIndex >= 0) {
       const existing = data.feeds[existingIndex];
       data.feeds[existingIndex] = { ...existing, ...feed, id: existing.id };
@@ -132,9 +136,12 @@ export function addUserFeed(feed: UserFeed): UserData {
   });
 }
 
-export function updateUserFeed(id: string, updates: Partial<Omit<UserFeed, "id" | "userAdded" | "addedAt">>): UserData | null {
-  return withUpdatedData(data => {
-    const index = data.feeds.findIndex(f => f.id === id);
+export function updateUserFeed(
+  id: string,
+  updates: Partial<Omit<UserFeed, "id" | "userAdded" | "addedAt">>
+): UserData | null {
+  return withUpdatedData((data) => {
+    const index = data.feeds.findIndex((f) => f.id === id);
     if (index < 0) return data;
     data.feeds[index] = { ...data.feeds[index], ...updates };
     return data;
@@ -142,20 +149,20 @@ export function updateUserFeed(id: string, updates: Partial<Omit<UserFeed, "id" 
 }
 
 export function removeUserFeed(id: string): UserData {
-  return withUpdatedData(data => {
-    data.feeds = data.feeds.filter(f => f.id !== id);
+  return withUpdatedData((data) => {
+    data.feeds = data.feeds.filter((f) => f.id !== id);
     return data;
   });
 }
 
 export function setFeedEnabled(id: string, enabled: boolean): UserData {
-  return withUpdatedData(data => {
-    const feed = data.feeds.find(f => f.id === id);
+  return withUpdatedData((data) => {
+    const feed = data.feeds.find((f) => f.id === id);
     if (feed) {
       feed.enabled = enabled;
     } else {
       // Static feed toggled off: store an override with enabled=false.
-      const staticFeed = getAllFeeds([]).find(f => f.id === id);
+      const staticFeed = getAllFeeds([]).find((f) => f.id === id);
       if (staticFeed && staticFeed.userAdded !== true) {
         data.feeds.push({
           ...staticFeed,
@@ -171,7 +178,7 @@ export function setFeedEnabled(id: string, enabled: boolean): UserData {
 
 export function isFeedEnabled(id: string): boolean {
   const data = loadUserData();
-  const userFeed = data.feeds.find(f => f.id === id);
+  const userFeed = data.feeds.find((f) => f.id === id);
   if (userFeed) return userFeed.enabled;
   return true;
 }
@@ -194,19 +201,19 @@ function addToArray(data: UserData, key: keyof ArticleState, value: string): Use
 }
 
 export function toggleBookmark(entryId: string): UserData {
-  return withUpdatedData(data => toggleInArray(data, "bookmarked", entryId));
+  return withUpdatedData((data) => toggleInArray(data, "bookmarked", entryId));
 }
 
 export function toggleRead(entryId: string): UserData {
-  return withUpdatedData(data => toggleInArray(data, "read", entryId));
+  return withUpdatedData((data) => toggleInArray(data, "read", entryId));
 }
 
 export function markRead(entryId: string): UserData {
-  return withUpdatedData(data => addToArray(data, "read", entryId));
+  return withUpdatedData((data) => addToArray(data, "read", entryId));
 }
 
 export function toggleArchived(entryId: string): UserData {
-  return withUpdatedData(data => toggleInArray(data, "archived", entryId));
+  return withUpdatedData((data) => toggleInArray(data, "archived", entryId));
 }
 
 export function isBookmarked(entryId: string): boolean {
@@ -222,7 +229,7 @@ export function isArchived(entryId: string): boolean {
 }
 
 export function updatePreferences(updates: Partial<UserPreferences>): UserData {
-  return withUpdatedData(data => {
+  return withUpdatedData((data) => {
     data.preferences = { ...data.preferences, ...updates };
     return data;
   });
@@ -233,9 +240,11 @@ export function getPreferences(): UserPreferences {
 }
 
 export function importUserFeeds(feeds: UserFeed[]): UserData {
-  return withUpdatedData(data => {
+  return withUpdatedData((data) => {
     for (const feed of feeds) {
-      const existingIndex = data.feeds.findIndex(f => f.rssUrl === feed.rssUrl || f.id === feed.id);
+      const existingIndex = data.feeds.findIndex(
+        (f) => f.rssUrl === feed.rssUrl || f.id === feed.id
+      );
       if (existingIndex >= 0) {
         data.feeds[existingIndex] = { ...data.feeds[existingIndex], ...feed };
       } else {

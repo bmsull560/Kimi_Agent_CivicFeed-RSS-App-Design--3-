@@ -45,16 +45,23 @@ function healthLabel(status: string | undefined): string {
   }
 }
 
-export default function FeedStatusPanel({ status, health, loading, onRefresh }: FeedStatusPanelProps) {
+export default function FeedStatusPanel({
+  status,
+  health,
+  loading,
+  onRefresh,
+}: FeedStatusPanelProps) {
   if (!status) {
     return (
       <div className="card p-4 text-sm text-slate-500">
-        Fetch diagnostics are not available. Start the backend to see per-feed health and last refresh times.
+        Fetch diagnostics are not available. Start the backend to see per-feed health and last
+        refresh times.
       </div>
     );
   }
 
-  const hasRecentError = status.lastErrorAt != null &&
+  const hasRecentError =
+    status.lastErrorAt != null &&
     (status.lastSuccessAt == null || status.lastErrorAt > status.lastSuccessAt);
 
   return (

@@ -1,9 +1,4 @@
-import type {
-  FeedFetchStatus,
-  FeedStats,
-  DiscoveredFeed,
-  FeedArticlesResponse,
-} from "../types";
+import type { FeedFetchStatus, FeedStats, DiscoveredFeed, FeedArticlesResponse } from "../types";
 
 const API_BASE = import.meta.env?.VITE_API_URL || "";
 
@@ -11,7 +6,10 @@ function getApiBaseCandidates(): string[] {
   const candidates = new Set<string>();
   candidates.add(API_BASE);
 
-  if (typeof window !== "undefined" && ["localhost", "127.0.0.1"].includes(window.location.hostname)) {
+  if (
+    typeof window !== "undefined" &&
+    ["localhost", "127.0.0.1"].includes(window.location.hostname)
+  ) {
     candidates.add("http://localhost:4000");
   }
 
@@ -43,16 +41,19 @@ async function fetchJson<T>(path: string, options?: RequestInit): Promise<T | nu
  */
 export async function fetchFeedArticles(
   feedId: string,
-  options: { refresh?: boolean } = {},
+  options: { refresh?: boolean } = {}
 ): Promise<FeedArticlesResponse> {
   const headers: Record<string, string> = {};
   if (options.refresh) {
     headers["Cache-Control"] = "max-age=0";
   }
 
-  const data = await fetchJson<FeedArticlesResponse>(`/api/feeds/${encodeURIComponent(feedId)}/articles`, {
-    headers,
-  });
+  const data = await fetchJson<FeedArticlesResponse>(
+    `/api/feeds/${encodeURIComponent(feedId)}/articles`,
+    {
+      headers,
+    }
+  );
 
   if (!data) {
     return { entries: [], cached: false, error: "Backend unreachable" };
@@ -67,10 +68,15 @@ export async function fetchFeedStatus(feedId: string): Promise<FeedFetchStatus |
   });
 }
 
-export async function fetchFeedHealth(feedId: string): Promise<import("../types").FeedHealth | null> {
-  return fetchJson<import("../types").FeedHealth>(`/api/feeds/${encodeURIComponent(feedId)}/health`, {
-    signal: AbortSignal.timeout(30000),
-  });
+export async function fetchFeedHealth(
+  feedId: string
+): Promise<import("../types").FeedHealth | null> {
+  return fetchJson<import("../types").FeedHealth>(
+    `/api/feeds/${encodeURIComponent(feedId)}/health`,
+    {
+      signal: AbortSignal.timeout(30000),
+    }
+  );
 }
 
 export async function fetchFeedStats(): Promise<FeedStats | null> {
@@ -80,9 +86,12 @@ export async function fetchFeedStats(): Promise<FeedStats | null> {
 }
 
 export async function discoverFeeds(inputUrl: string): Promise<DiscoveredFeed[]> {
-  const data = await fetchJson<{ feeds?: DiscoveredFeed[] }>(`/api/discover?url=${encodeURIComponent(inputUrl)}`, {
-    signal: AbortSignal.timeout(15000),
-  });
+  const data = await fetchJson<{ feeds?: DiscoveredFeed[] }>(
+    `/api/discover?url=${encodeURIComponent(inputUrl)}`,
+    {
+      signal: AbortSignal.timeout(15000),
+    }
+  );
   return data?.feeds || [];
 }
 
@@ -115,7 +124,7 @@ export async function fetchFeed(
   _url: string,
   feedId: string,
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  _feedName: string,
+  _feedName: string
 ): Promise<{ entries: import("../types").RssEntry[]; error: string | null }> {
   return fetchFeedArticles(feedId);
 }

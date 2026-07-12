@@ -25,6 +25,20 @@ function parseTags(json: string | null | undefined): string[] | undefined {
 }
 
 export { parseTags };
+interface SearchRow {
+  entry_id: string;
+  feed_id: string;
+  title: string;
+  link: string;
+  description: string;
+  pub_date: string;
+  author: string | null;
+  feed_name: string;
+  rank: number;
+  ai_summary: string | null;
+  ai_tags: string | null;
+}
+
 /**
  * Search articles using the FTS5 index.
  *
@@ -59,7 +73,7 @@ export function searchArticles(query: string, limit: number = 20): SearchResult[
     LIMIT ?
   `);
 
-  const rows = stmt.all(`"${safeQuery}"*`, limit) as any[];
+  const rows = stmt.all(`"${safeQuery}"*`, limit) as SearchRow[];
 
   return rows.map((r) => ({
     entryId: r.entry_id,
@@ -71,7 +85,7 @@ export function searchArticles(query: string, limit: number = 20): SearchResult[
     author: r.author,
     feedName: r.feed_name,
     rank: r.rank,
-    aiSummary: r.ai_summary,
+    aiSummary: r.ai_summary ?? undefined,
     aiTags: parseTags(r.ai_tags),
   }));
 }
@@ -101,7 +115,7 @@ export function getRecentArticles(limit: number = 50): SearchResult[] {
     LIMIT ?
   `);
 
-  const rows = stmt.all(limit) as any[];
+  const rows = stmt.all(limit) as SearchRow[];
 
   return rows.map((r) => ({
     entryId: r.entry_id,
@@ -113,7 +127,7 @@ export function getRecentArticles(limit: number = 50): SearchResult[] {
     author: r.author,
     feedName: r.feed_name,
     rank: 0,
-    aiSummary: r.ai_summary,
+    aiSummary: r.ai_summary ?? undefined,
     aiTags: parseTags(r.ai_tags),
   }));
 }

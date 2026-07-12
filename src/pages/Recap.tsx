@@ -87,8 +87,12 @@ export default function Recap() {
         </div>
         {recap && (
           <div className="flex items-center gap-3 text-sm text-slate-500">
-            <span className="flex items-center gap-1"><Newspaper size={14} /> {recap.totalArticles} articles</span>
-            <span className="flex items-center gap-1"><Tag size={14} /> {recap.topTags.length} topics</span>
+            <span className="flex items-center gap-1">
+              <Newspaper size={14} /> {recap.totalArticles} articles
+            </span>
+            <span className="flex items-center gap-1">
+              <Tag size={14} /> {recap.topTags.length} topics
+            </span>
           </div>
         )}
       </div>
@@ -137,30 +141,32 @@ export default function Recap() {
       )}
 
       {/* Category Groups */}
-      {!loading && recap && recap.categories.map((group) => (
-        <section key={group.category} className="card">
-          <div className="px-5 py-3 border-b border-slate-100 flex items-center justify-between">
-            <h2 className="text-sm font-semibold text-slate-800">{group.category}</h2>
-            <span className="text-xs text-slate-400">{group.entries.length} articles</span>
-          </div>
-          <div className="divide-y divide-slate-100 px-5">
-            {group.entries.slice(0, 5).map((r) => (
-              <EntryCard key={r.entryId} entry={toEntry(r)} compact />
-            ))}
-          </div>
-          {group.entries.length > 5 && (
-            <div className="px-5 py-2 border-t border-slate-100">
-              <button
-                onClick={() => navigate(`/feeds?category=${encodeURIComponent(group.category)}`)}
-                className="text-sm text-blue-600 hover:underline flex items-center gap-1"
-                type="button"
-              >
-                View all {group.entries.length} in {group.category} <ArrowRight size={14} />
-              </button>
+      {!loading &&
+        recap &&
+        recap.categories.map((group) => (
+          <section key={group.category} className="card">
+            <div className="px-5 py-3 border-b border-slate-100 flex items-center justify-between">
+              <h2 className="text-sm font-semibold text-slate-800">{group.category}</h2>
+              <span className="text-xs text-slate-400">{group.entries.length} articles</span>
             </div>
-          )}
-        </section>
-      ))}
+            <div className="divide-y divide-slate-100 px-5">
+              {group.entries.slice(0, 5).map((r) => (
+                <EntryCard key={r.entryId} entry={toEntry(r)} compact />
+              ))}
+            </div>
+            {group.entries.length > 5 && (
+              <div className="px-5 py-2 border-t border-slate-100">
+                <button
+                  onClick={() => navigate(`/feeds?category=${encodeURIComponent(group.category)}`)}
+                  className="text-sm text-blue-600 hover:underline flex items-center gap-1"
+                  type="button"
+                >
+                  View all {group.entries.length} in {group.category} <ArrowRight size={14} />
+                </button>
+              </div>
+            )}
+          </section>
+        ))}
     </div>
   );
 }

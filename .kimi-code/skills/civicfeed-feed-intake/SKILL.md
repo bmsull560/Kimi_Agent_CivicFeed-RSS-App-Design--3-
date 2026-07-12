@@ -70,21 +70,21 @@ Do NOT use this skill for:
 
 ## Supported Source Types
 
-| Format | Identifier | Parser Support | Notes |
-|--------|------------|----------------|-------|
-| RSS 2.0 | `<channel>` + `<item>` | Full | Primary supported format. |
-| Atom 1.0 | `<feed>` + `<entry>` | Full | Dates taken from `<published>` / `<updated>`; link from `rel="alternate"` or first `<link href>`. |
-| CAP XML (OASIS) | `<alert>` / NOAA-style feeds | Partial | Items parse as generic entries; CAP fields (severity, area, certainty) are lost. Tag `cap` and note semantics. |
-| SharePoint RSS | URL contains `feed.aspx?xsl=1&page=...` | Full | Treat as RSS 2.0; use `<guid>` when `<link>` is missing. |
+| Format          | Identifier                              | Parser Support | Notes                                                                                                          |
+| --------------- | --------------------------------------- | -------------- | -------------------------------------------------------------------------------------------------------------- |
+| RSS 2.0         | `<channel>` + `<item>`                  | Full           | Primary supported format.                                                                                      |
+| Atom 1.0        | `<feed>` + `<entry>`                    | Full           | Dates taken from `<published>` / `<updated>`; link from `rel="alternate"` or first `<link href>`.              |
+| CAP XML (OASIS) | `<alert>` / NOAA-style feeds            | Partial        | Items parse as generic entries; CAP fields (severity, area, certainty) are lost. Tag `cap` and note semantics. |
+| SharePoint RSS  | URL contains `feed.aspx?xsl=1&page=...` | Full           | Treat as RSS 2.0; use `<guid>` when `<link>` is missing.                                                       |
 
 ## Unsupported / Blocked Source Types
 
-| Format | Why Blocked | Action |
-|--------|-------------|--------|
-| JSON Feed | No parser implemented | Reject |
+| Format                            | Why Blocked                              | Action |
+| --------------------------------- | ---------------------------------------- | ------ |
+| JSON Feed                         | No parser implemented                    | Reject |
 | Twitter/X, Facebook, Bluesky APIs | Not RSS/Atom; requires API keys and auth | Reject |
-| Authenticated / private feeds | App only fetches public URLs | Reject |
-| Email-newsletter-only sites | No machine-readable syndication feed | Reject |
+| Authenticated / private feeds     | App only fetches public URLs             | Reject |
+| Email-newsletter-only sites       | No machine-readable syndication feed     | Reject |
 
 ## Best Source Mediums / Protocols
 
@@ -106,14 +106,14 @@ Do NOT use this skill for:
 
 Assign `priority` based on the publishing agency's mission:
 
-| Tier | Mission | Example Agencies |
-|------|---------|------------------|
-| 1 | Safety, Health, Emergency | CISA, CDC, FDA, FEMA, NOAA, USGS |
-| 2 | Financial, Consumer, Investor | SEC, CFTC, Fed, Treasury, FTC, HHS |
-| 3 | Transportation & Travel | State, NTSB, DOT, CBP |
-| 4 | Environment, Energy, Nuclear | CSB, NRC, EIA, EPA |
-| 5 | Security, Law Enforcement | FBI, DNI |
-| 6 | Government Accountability | GAO, SSA OIG |
+| Tier | Mission                       | Example Agencies                   |
+| ---- | ----------------------------- | ---------------------------------- |
+| 1    | Safety, Health, Emergency     | CISA, CDC, FDA, FEMA, NOAA, USGS   |
+| 2    | Financial, Consumer, Investor | SEC, CFTC, Fed, Treasury, FTC, HHS |
+| 3    | Transportation & Travel       | State, NTSB, DOT, CBP              |
+| 4    | Environment, Energy, Nuclear  | CSB, NRC, EIA, EPA                 |
+| 5    | Security, Law Enforcement     | FBI, DNI                           |
+| 6    | Government Accountability     | GAO, SSA OIG                       |
 
 ## Common Mistakes
 

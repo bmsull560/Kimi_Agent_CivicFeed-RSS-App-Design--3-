@@ -1,0 +1,14 @@
+# Global fallback owner
+* @bmsull560
+
+# Backend service and data model
+/backend/ @bmsull560
+
+# CI/CD and repository automation
+/.github/ @bmsull560
+/scripts/ @bmsull560
+
+# Documentation and governance
+/AGENTS.md @bmsull560
+/SECURITY.md @bmsull560
+/README.md @bmsull560

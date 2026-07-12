@@ -1,10 +1,7 @@
 import { guardedFetch } from "./url-security.js";
 import { db } from "./db.js";
 import { logger } from "./logger.js";
-import {
-  RssEntry,
-  parseRssXml,
-} from "./rss-parser.js";
+import { RssEntry, parseRssXml } from "./rss-parser.js";
 
 export type { RssEntry };
 
@@ -85,7 +82,10 @@ function recordCircuitFailure(cb: CircuitBreaker, feedId: string, now = Date.now
   if (cb.state === "half-open") {
     cb.state = "open";
     cb.openedAt = now;
-    logger.warn("circuit breaker opened after half-open failure", { feedId, failures: cb.failures });
+    logger.warn("circuit breaker opened after half-open failure", {
+      feedId,
+      failures: cb.failures,
+    });
     return;
   }
 
@@ -171,7 +171,11 @@ function validateFeedClientSide(entries: RssEntry[], feedId: string) {
  *   short-circuiting subsequent calls for CIRCUIT_OPEN_MS.
  * - Records success/failure in feed_fetch_status for scheduler backoff.
  */
-export async function fetchFeed(url: string, feedId: string, feedName: string): Promise<FetchResult> {
+export async function fetchFeed(
+  url: string,
+  feedId: string,
+  feedName: string
+): Promise<FetchResult> {
   const cb = getCircuitBreaker(feedId);
   const now = Date.now();
 
@@ -233,7 +237,11 @@ export async function fetchFeed(url: string, feedId: string, feedName: string): 
 
   recordFeedFailure(feedId, lastError, now);
   recordCircuitFailure(cb, feedId, now);
-  logger.warn("feed fetch failed after retries", { feedId, error: lastError, attempts: MAX_RETRIES + 1 });
+  logger.warn("feed fetch failed after retries", {
+    feedId,
+    error: lastError,
+    attempts: MAX_RETRIES + 1,
+  });
   return { entries: [], error: lastError };
 }
 

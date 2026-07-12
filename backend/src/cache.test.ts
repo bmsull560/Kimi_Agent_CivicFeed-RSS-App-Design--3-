@@ -17,7 +17,10 @@ describe("cache", () => {
   it("saves and retrieves cached articles", () => {
     const feedId = insertTestFeed({ id: "feed-cache" });
     const entries = [
-      makeEntry({ id: "e1", title: "First", pubDate: new Date(Date.now() - 60_000).toISOString() }, feedId),
+      makeEntry(
+        { id: "e1", title: "First", pubDate: new Date(Date.now() - 60_000).toISOString() },
+        feedId
+      ),
       makeEntry({ id: "e2", title: "Second" }, feedId),
     ];
 

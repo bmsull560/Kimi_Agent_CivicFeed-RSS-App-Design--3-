@@ -10,7 +10,9 @@ fs.mkdirSync(tmpDir, { recursive: true });
 const entryPath = path.join(tmpDir, "route-render-entry.tsx");
 const bundlePath = path.join(tmpDir, "route-render-bundle.cjs");
 
-fs.writeFileSync(entryPath, `
+fs.writeFileSync(
+  entryPath,
+  `
 import React from "react";
 import { renderToString } from "react-dom/server";
 import { MemoryRouter } from "react-router-dom";
@@ -95,7 +97,8 @@ if (failures.length > 0) {
 }
 
 console.log(\`Route render verification passed: \${cases.length} routes rendered.\`);
-`);
+`
+);
 
 await esbuild.build({
   entryPoints: [entryPath],

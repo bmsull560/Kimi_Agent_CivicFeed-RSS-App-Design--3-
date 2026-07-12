@@ -28,15 +28,15 @@ Use `--limit` for smoke runs and `--feed feed-123` for a single-feed check. Omit
 
 The backend validator follows the same seven-gate model as the static app validator:
 
-| Gate | Failure level |
-| --- | --- |
-| Reachable | fail |
-| Valid XML | fail |
-| Valid schema | fail |
-| Stable GUIDs | fail |
-| Sane dates | warn |
-| Usable content | warn |
-| Fresh | warn |
+| Gate           | Failure level |
+| -------------- | ------------- |
+| Reachable      | fail          |
+| Valid XML      | fail          |
+| Valid schema   | fail          |
+| Stable GUIDs   | fail          |
+| Sane dates     | warn          |
+| Usable content | warn          |
+| Fresh          | warn          |
 
 Strict mode exits nonzero for any warning, failure, missing result, or partial run mismatch.
 

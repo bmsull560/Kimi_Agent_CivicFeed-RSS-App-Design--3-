@@ -55,7 +55,9 @@ export default function SearchResults() {
         try {
           const controller = new AbortController();
           const timer = setTimeout(() => controller.abort(), 10000);
-          const r = await fetch(`${base}/api/search?q=${encodeURIComponent(q)}&limit=50`, { signal: controller.signal });
+          const r = await fetch(`${base}/api/search?q=${encodeURIComponent(q)}&limit=50`, {
+            signal: controller.signal,
+          });
           clearTimeout(timer);
 
           if (!r.ok) continue;
@@ -101,7 +103,10 @@ export default function SearchResults() {
       {!loading && q && results.length === 0 && (
         <EmptyState
           message="No articles found"
-          subMessage={error || `No results for "${q}". Try different keywords or visit a feed to cache more articles.`}
+          subMessage={
+            error ||
+            `No results for "${q}". Try different keywords or visit a feed to cache more articles.`
+          }
         />
       )}
 

@@ -26,8 +26,18 @@ const offset = Number(args.get("offset") ?? 0);
 const concurrency = Math.max(1, Number(args.get("concurrency") ?? 8));
 const timeoutMs = Math.max(1000, Number(args.get("timeout-ms") ?? 12000));
 const outPath = args.get("out") ?? path.join("artifacts", "live-feed-validation.json");
-const ids = new Set((args.get("ids") ?? "").split(",").map((id) => id.trim()).filter(Boolean));
-const statuses = new Set((args.get("status") ?? "").split(",").map((status) => status.trim()).filter(Boolean));
+const ids = new Set(
+  (args.get("ids") ?? "")
+    .split(",")
+    .map((id) => id.trim())
+    .filter(Boolean)
+);
+const statuses = new Set(
+  (args.get("status") ?? "")
+    .split(",")
+    .map((status) => status.trim())
+    .filter(Boolean)
+);
 const discover = args.get("discover") === "true";
 
 function loadTsModule(relativePath) {
@@ -73,7 +83,7 @@ function classifyFormat(xmlText) {
 function decodeHtmlEntities(value) {
   return value
     .replace(/&amp;/g, "&")
-    .replace(/&quot;/g, "\"")
+    .replace(/&quot;/g, '"')
     .replace(/&#39;/g, "'")
     .replace(/&lt;/g, "<")
     .replace(/&gt;/g, ">");
@@ -117,7 +127,7 @@ async function fetchWithTimeout(url, timeout) {
     return await fetch(url, {
       signal: controller.signal,
       headers: {
-        "Accept": "application/rss+xml, application/atom+xml, application/xml, text/xml, */*",
+        Accept: "application/rss+xml, application/atom+xml, application/xml, text/xml, */*",
         "User-Agent": "CivicFeed-LiveValidator/1.0",
       },
       redirect: "follow",
@@ -158,10 +168,11 @@ async function tryParseUrl(url, feed, source, startedAt) {
       finalUrl: parsed.response.url,
       format: classifyFormat(parsed.text),
       entries: parsed.entries.length,
-      newestItemDate: parsed.entries
-        .map((entry) => Date.parse(entry.pubDate))
-        .filter(Number.isFinite)
-        .sort((a, b) => b - a)[0] ?? null,
+      newestItemDate:
+        parsed.entries
+          .map((entry) => Date.parse(entry.pubDate))
+          .filter(Number.isFinite)
+          .sort((a, b) => b - a)[0] ?? null,
       responseTimeMs: Date.now() - startedAt,
       source,
       error: null,
@@ -172,13 +183,21 @@ async function tryParseUrl(url, feed, source, startedAt) {
 async function validateFeed(feed) {
   const startedAt = Date.now();
   try {
-    const { parsed: primary, result: primaryResult } = await tryParseUrl(feed.rssUrl, feed, "direct", startedAt);
+    const { parsed: primary, result: primaryResult } = await tryParseUrl(
+      feed.rssUrl,
+      feed,
+      "direct",
+      startedAt
+    );
     if (primaryResult) return primaryResult;
 
     // Public CORS proxies are intentionally not used in production validation.
     // If the direct feed is unreachable, optionally discover an alternate feed URL.
     if (discover && primary.response.ok && primary.text) {
-      const candidates = extractDiscoveredFeedCandidates(primary.text, primary.response.url || feed.rssUrl);
+      const candidates = extractDiscoveredFeedCandidates(
+        primary.text,
+        primary.response.url || feed.rssUrl
+      );
       for (const candidate of candidates) {
         try {
           const { result } = await tryParseUrl(candidate, feed, "discovered", startedAt);
@@ -242,7 +261,9 @@ async function worker() {
     const result = await validateFeed(feed);
     results[index] = result;
     const marker = result.status === "working" ? "OK" : "FAIL";
-    console.log(`[${marker}] ${result.id} ${result.entries} entries ${result.responseTimeMs}ms ${result.rssUrl}`);
+    console.log(
+      `[${marker}] ${result.id} ${result.entries} entries ${result.responseTimeMs}ms ${result.rssUrl}`
+    );
   }
 }
 

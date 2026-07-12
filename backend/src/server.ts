@@ -1,7 +1,7 @@
 import express from "express";
 import cors from "cors";
 import { db } from "./db.js";
-import { fetchFeed } from "./rss.js";
+import { fetchFeed, type RssEntry } from "./rss.js";
 import { getCachedArticles, saveArticles } from "./cache.js";
 import { getCachedEnrichment } from "./ai.js";
 import { enqueueArticleEnrichment } from "./enrichment-queue.js";
@@ -10,12 +10,60 @@ import { generateRecap } from "./recap.js";
 import { logger } from "./logger.js";
 import { startFeedRefreshScheduler } from "./scheduler.js";
 import { discoverFeeds } from "./discovery.js";
-import { validateFeedHealth, type FeedHealth } from "./feed-health.js";
-import { feeds, type Feed } from "./feeds.js";
+import { validateFeedHealth } from "./feed-health.js";
+import { type Feed } from "./feeds.js";
 
 export const app = express();
 const PORT = process.env.PORT || 4000;
 const startTime = Date.now();
+
+interface CountRow {
+  c: number;
+}
+
+interface FeedRow {
+  id: string;
+  name: string;
+  short_name: string;
+  agency: string;
+  description: string;
+  rss_url: string;
+  website: string;
+  department: string;
+  category: string;
+  sub_category: string;
+  content_type: string;
+  update_frequency: string;
+  status: string;
+  tags: string;
+  health_status: string | null;
+  health_checked_at: number | null;
+  health_error: string | null;
+}
+
+interface FetchStatusRow {
+  feed_id: string;
+  last_success_at: number | null;
+  last_error_at: number | null;
+  last_error_message: string | null;
+  attempt_count: number;
+  success_count: number;
+  failure_count: number;
+  next_fetch_at: number | null;
+}
+
+interface ArticleByIdRow {
+  entry_id: string;
+  feed_id: string;
+  title: string;
+  link: string;
+  description: string;
+  pub_date: string;
+  author: string | null;
+  feed_name: string;
+  ai_summary: string | null;
+  ai_tags: string | null;
+}
 
 app.use(cors());
 app.use(express.json());
@@ -40,7 +88,7 @@ app.get("/api/health", (_req, res) => {
   let dbHealthy = false;
   let feedsCount = 0;
   try {
-    feedsCount = (db.prepare("SELECT COUNT(*) as c FROM feeds").get() as any).c;
+    feedsCount = (db.prepare("SELECT COUNT(*) as c FROM feeds").get() as CountRow).c;
     dbHealthy = true;
   } catch (error) {
     logger.error("health check database query failed", error);
@@ -70,7 +118,7 @@ app.get("/api/ready", (_req, res) => {
 
 // List all feeds
 app.get("/api/feeds", (_req, res) => {
-  const rows = db.prepare("SELECT * FROM feeds ORDER BY name").all() as any[];
+  const rows = db.prepare("SELECT * FROM feeds ORDER BY name").all() as FeedRow[];
   const feeds = rows.map((r) => ({
     id: r.id,
     name: r.name,
@@ -104,7 +152,8 @@ app.get("/api/feeds", (_req, res) => {
 
 // Get single feed
 app.get("/api/feeds/:id", (req, res) => {
-  const row = db.prepare("SELECT * FROM feeds WHERE id = ?").get(req.params.id) as any;
+  const row = db.prepare("SELECT * FROM feeds WHERE id = ?").get(req.params.id) as
+    FeedRow | undefined;
   if (!row) return res.status(404).json({ error: "Feed not found" });
   res.json({
     id: row.id,
@@ -130,10 +179,12 @@ app.get("/api/feeds/:id", (req, res) => {
 // Get feed fetch status
 app.get("/api/feeds/:id/status", (req, res) => {
   const feedId = req.params.id;
-  const feed = db.prepare("SELECT id FROM feeds WHERE id = ?").get(feedId) as any;
+  const feed = db.prepare("SELECT id FROM feeds WHERE id = ?").get(feedId) as
+    { id: string } | undefined;
   if (!feed) return res.status(404).json({ error: "Feed not found" });
 
-  const row = db.prepare("SELECT * FROM feed_fetch_status WHERE feed_id = ?").get(feedId) as any;
+  const row = db.prepare("SELECT * FROM feed_fetch_status WHERE feed_id = ?").get(feedId) as
+    FetchStatusRow | undefined;
   const status = row
     ? {
         feedId: row.feed_id,
@@ -162,7 +213,7 @@ app.get("/api/feeds/:id/status", (req, res) => {
 // Get feed health
 app.get("/api/feeds/:id/health", async (req, res) => {
   const feedId = req.params.id;
-  const feedRow = db.prepare("SELECT * FROM feeds WHERE id = ?").get(feedId) as any;
+  const feedRow = db.prepare("SELECT * FROM feeds WHERE id = ?").get(feedId) as FeedRow | undefined;
   if (!feedRow) return res.status(404).json({ error: "Feed not found" });
 
   const feed: Feed = {
@@ -178,7 +229,7 @@ app.get("/api/feeds/:id/health", async (req, res) => {
     subCategory: feedRow.sub_category,
     contentType: feedRow.content_type,
     updateFrequency: feedRow.update_frequency,
-    status: feedRow.status,
+    status: feedRow.status as Feed["status"],
     tags: JSON.parse(feedRow.tags),
   };
 
@@ -190,10 +241,10 @@ app.get("/api/feeds/:id/health", async (req, res) => {
 app.get("/api/feeds/:id/articles", async (req, res) => {
   const feedId = req.params.id;
 
-  const feedRow = db.prepare("SELECT * FROM feeds WHERE id = ?").get(feedId) as any;
+  const feedRow = db.prepare("SELECT * FROM feeds WHERE id = ?").get(feedId) as FeedRow | undefined;
   if (!feedRow) return res.status(404).json({ error: "Feed not found" });
 
-  let entries: any[];
+  let entries: RssEntry[];
   let fromCache = false;
 
   // Try cache first
@@ -296,7 +347,7 @@ app.post("/api/articles/by-ids", express.json(), (req, res) => {
     WHERE ac.entry_id IN (${placeholders})
   `);
 
-  const rows = stmt.all(...cappedIds) as any[];
+  const rows = stmt.all(...cappedIds) as ArticleByIdRow[];
   const results = rows.map((r) => ({
     entryId: r.entry_id,
     feedId: r.feed_id,
@@ -322,26 +373,44 @@ app.get("/api/recap", (_req, res) => {
 
 // Cache stats
 app.get("/api/stats/cache", (_req, res) => {
-  const totalArticles = (db.prepare("SELECT COUNT(*) as c FROM article_cache").get() as any).c;
-  const cachedFeeds = (db.prepare("SELECT COUNT(DISTINCT feed_id) as c FROM article_cache").get() as any).c;
+  const totalArticles = (db.prepare("SELECT COUNT(*) as c FROM article_cache").get() as CountRow).c;
+  const cachedFeeds = (
+    db.prepare("SELECT COUNT(DISTINCT feed_id) as c FROM article_cache").get() as CountRow
+  ).c;
   res.json({ totalArticles, cachedFeeds });
 });
 
 // Feed stats
 app.get("/api/stats/feeds", (_req, res) => {
-  const totalFeeds = (db.prepare("SELECT COUNT(*) as c FROM feeds").get() as any).c;
-  const workingFeeds = (db.prepare("SELECT COUNT(*) as c FROM feeds WHERE status = 'working'").get() as any).c;
-  const feedsWithStatus = (db.prepare("SELECT COUNT(*) as c FROM feed_fetch_status").get() as any).c;
-  const feedsWithRecentError = (db.prepare(`
+  const totalFeeds = (db.prepare("SELECT COUNT(*) as c FROM feeds").get() as CountRow).c;
+  const workingFeeds = (
+    db.prepare("SELECT COUNT(*) as c FROM feeds WHERE status = 'working'").get() as CountRow
+  ).c;
+  const feedsWithStatus = (
+    db.prepare("SELECT COUNT(*) as c FROM feed_fetch_status").get() as CountRow
+  ).c;
+  const feedsWithRecentError = (
+    db
+      .prepare(
+        `
     SELECT COUNT(DISTINCT feed_id) as c FROM feed_fetch_status
     WHERE last_error_at IS NOT NULL
       AND (last_success_at IS NULL OR last_error_at > last_success_at)
-  `).get() as any).c;
+  `
+      )
+      .get() as CountRow
+  ).c;
   const staleThreshold = Date.now() - 24 * 60 * 60 * 1000;
-  const staleFeeds = (db.prepare(`
+  const staleFeeds = (
+    db
+      .prepare(
+        `
     SELECT COUNT(*) as c FROM feed_fetch_status
     WHERE last_success_at IS NOT NULL AND last_success_at < ?
-  `).get(staleThreshold) as any).c;
+  `
+      )
+      .get(staleThreshold) as CountRow
+  ).c;
 
   res.json({
     totalFeeds,
@@ -378,19 +447,30 @@ app.get("/api/discover", async (req, res) => {
 });
 
 // Global error handler
-app.use((err: Error, _req: express.Request, res: express.Response, _next: express.NextFunction) => {
+const errorHandler: express.ErrorRequestHandler = (
+  err: Error,
+  _req: express.Request,
+  res: express.Response
+) => {
   logger.error("unhandled request error", err);
   res.status(500).json({ error: "Internal server error" });
-});
+};
+app.use(errorHandler);
 
 if (import.meta.url === `file://${process.argv[1]}`) {
   const refreshIntervalMs = Number(process.env.CIVICFEED_REFRESH_INTERVAL_MS) || 60_000;
   const disableScheduler = process.env.CIVICFEED_DISABLE_SCHEDULER === "1";
   const server = app.listen(PORT, () => {
-    logger.info("server started", { port: PORT, refreshIntervalMs, schedulerDisabled: disableScheduler });
+    logger.info("server started", {
+      port: PORT,
+      refreshIntervalMs,
+      schedulerDisabled: disableScheduler,
+    });
   });
 
-  const stopScheduler = disableScheduler ? () => {} : startFeedRefreshScheduler(db, refreshIntervalMs);
+  const stopScheduler = disableScheduler
+    ? () => {}
+    : startFeedRefreshScheduler(db, refreshIntervalMs);
 
   const shutdown = () => {
     stopScheduler();

@@ -48,7 +48,9 @@ export async function refreshDueFeeds(
   batchSize = 50,
   concurrency = 5
 ): Promise<RefreshSummary> {
-  const dueFeeds = db.prepare(`
+  const dueFeeds = db
+    .prepare(
+      `
     SELECT f.id, f.rss_url, f.name
     FROM feeds f
     LEFT JOIN feed_fetch_status s ON f.id = s.feed_id
@@ -60,7 +62,9 @@ export async function refreshDueFeeds(
       )
     ORDER BY COALESCE(s.next_fetch_at, 0) ASC
     LIMIT ?
-  `).all(now, batchSize) as DueFeed[];
+  `
+    )
+    .all(now, batchSize) as DueFeed[];
 
   let succeeded = 0;
   let failed = 0;

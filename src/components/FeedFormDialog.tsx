@@ -26,7 +26,9 @@ import { discoverFeeds, validateFeedUrl } from "@/lib/rss";
 export interface FeedFormDialogProps {
   mode: "add" | "edit";
   feed?: UserFeed;
-  onSave: (feed: Omit<Feed, "id" | "status" | "userAdded" | "enabled" | "addedAt">) => boolean | Promise<boolean>;
+  onSave: (
+    feed: Omit<Feed, "id" | "status" | "userAdded" | "enabled" | "addedAt">
+  ) => boolean | Promise<boolean>;
   trigger?: React.ReactNode;
 }
 
@@ -160,9 +162,8 @@ export default function FeedFormDialog({ mode, feed, onSave, trigger }: FeedForm
   };
 
   const title = mode === "add" ? "Add Feed" : "Edit Feed";
-  const description = mode === "add"
-    ? "Subscribe to a new RSS or Atom feed."
-    : "Update this feed's details.";
+  const description =
+    mode === "add" ? "Subscribe to a new RSS or Atom feed." : "Update this feed's details.";
 
   return (
     <Dialog open={open} onOpenChange={handleOpenChange}>
@@ -182,7 +183,12 @@ export default function FeedFormDialog({ mode, feed, onSave, trigger }: FeedForm
         <div className="grid gap-4 py-4">
           <div className="grid gap-2">
             <Label htmlFor="feed-name">Name</Label>
-            <Input id="feed-name" value={name} onChange={e => setName(e.target.value)} placeholder="e.g. EPA News" />
+            <Input
+              id="feed-name"
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+              placeholder="e.g. EPA News"
+            />
           </div>
           <div className="grid gap-2">
             <Label htmlFor="feed-url">RSS / Atom URL</Label>
@@ -190,7 +196,10 @@ export default function FeedFormDialog({ mode, feed, onSave, trigger }: FeedForm
               <Input
                 id="feed-url"
                 value={rssUrl}
-                onChange={e => { setRssUrl(e.target.value); setDiscoveredFeeds([]); }}
+                onChange={(e) => {
+                  setRssUrl(e.target.value);
+                  setDiscoveredFeeds([]);
+                }}
                 placeholder="https://example.com/feed.xml or https://example.com"
                 className="flex-1"
               />
@@ -224,7 +233,12 @@ export default function FeedFormDialog({ mode, feed, onSave, trigger }: FeedForm
           </div>
           <div className="grid gap-2">
             <Label htmlFor="feed-website">Website (optional)</Label>
-            <Input id="feed-website" value={website} onChange={e => setWebsite(e.target.value)} placeholder="https://example.com" />
+            <Input
+              id="feed-website"
+              value={website}
+              onChange={(e) => setWebsite(e.target.value)}
+              placeholder="https://example.com"
+            />
           </div>
           <div className="grid gap-2">
             <Label htmlFor="feed-category">Category</Label>
@@ -233,8 +247,10 @@ export default function FeedFormDialog({ mode, feed, onSave, trigger }: FeedForm
                 <SelectValue placeholder="Select category" />
               </SelectTrigger>
               <SelectContent>
-                {categoryList.map(cat => (
-                  <SelectItem key={cat} value={cat}>{cat}</SelectItem>
+                {categoryList.map((cat) => (
+                  <SelectItem key={cat} value={cat}>
+                    {cat}
+                  </SelectItem>
                 ))}
               </SelectContent>
             </Select>
@@ -246,18 +262,25 @@ export default function FeedFormDialog({ mode, feed, onSave, trigger }: FeedForm
                 <SelectValue placeholder="None" />
               </SelectTrigger>
               <SelectContent>
-                {[1, 2, 3, 4, 5, 6].map(t => (
-                  <SelectItem key={t} value={String(t)}>Tier {t}</SelectItem>
+                {[1, 2, 3, 4, 5, 6].map((t) => (
+                  <SelectItem key={t} value={String(t)}>
+                    Tier {t}
+                  </SelectItem>
                 ))}
               </SelectContent>
             </Select>
           </div>
-          {error && (
-            <p className="text-sm text-red-600 bg-red-50 px-3 py-2 rounded-md">{error}</p>
-          )}
+          {error && <p className="text-sm text-red-600 bg-red-50 px-3 py-2 rounded-md">{error}</p>}
         </div>
         <DialogFooter>
-          <Button type="button" variant="outline" onClick={() => setOpen(false)} disabled={validating || discovering}>Cancel</Button>
+          <Button
+            type="button"
+            variant="outline"
+            onClick={() => setOpen(false)}
+            disabled={validating || discovering}
+          >
+            Cancel
+          </Button>
           <Button type="button" onClick={handleSave} disabled={validating || discovering}>
             {validating ? "Validating..." : mode === "add" ? "Add Feed" : "Save Changes"}
           </Button>

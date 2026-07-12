@@ -9,7 +9,9 @@ interface FeedStatusState {
   error: string | null;
 }
 
-export function useFeedStatus(feedId: string | undefined): FeedStatusState & { refresh: () => void } {
+export function useFeedStatus(
+  feedId: string | undefined
+): FeedStatusState & { refresh: () => void } {
   const [state, setState] = useState<FeedStatusState>({
     status: null,
     health: null,

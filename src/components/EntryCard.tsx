@@ -1,7 +1,23 @@
 import { useNavigate } from "react-router-dom";
-import { Bookmark, BookmarkCheck, Archive, ArchiveRestore, Eye, EyeOff, ExternalLink } from "lucide-react";
+import {
+  Bookmark,
+  BookmarkCheck,
+  Archive,
+  ArchiveRestore,
+  Eye,
+  EyeOff,
+  ExternalLink,
+} from "lucide-react";
 import type { RssEntry } from "../types";
-import { isBookmarked, isRead, isArchived, toggleBookmark, toggleRead, toggleArchived, markRead } from "../lib/userData";
+import {
+  isBookmarked,
+  isRead,
+  isArchived,
+  toggleBookmark,
+  toggleRead,
+  toggleArchived,
+  markRead,
+} from "../lib/userData";
 
 function timeAgo(isoDate: string): string {
   const d = new Date(isoDate);
@@ -30,7 +46,8 @@ function sourceLabel(source?: string): string {
 }
 
 function sourceColor(source?: string): string {
-  if (source === "ollama" || source === "openai") return "bg-emerald-50 text-emerald-700 border-emerald-200";
+  if (source === "ollama" || source === "openai")
+    return "bg-emerald-50 text-emerald-700 border-emerald-200";
   return "bg-slate-50 text-slate-600 border-slate-200";
 }
 
@@ -74,7 +91,9 @@ export default function EntryCard({ entry, compact, onChange }: EntryCardProps) 
   };
 
   return (
-    <article className={`group border-b border-slate-100 ${compact ? "py-3" : "py-4"} ${read ? "bg-slate-50/50" : ""}`}>
+    <article
+      className={`group border-b border-slate-100 ${compact ? "py-3" : "py-4"} ${read ? "bg-slate-50/50" : ""}`}
+    >
       <div className="flex items-start justify-between gap-3">
         <button onClick={handleOpenDetail} className="min-w-0 flex-1 text-left" type="button">
           <span className="block text-sm font-semibold text-slate-800 group-hover:text-blue-600 transition-colors line-clamp-2">
@@ -82,13 +101,17 @@ export default function EntryCard({ entry, compact, onChange }: EntryCardProps) 
           </span>
           <div className="flex items-center gap-2 mt-1 flex-wrap">
             <span className="badge bg-slate-100 text-slate-600">{entry.feedName}</span>
-            {entry.author && <span className="text-[0.6875rem] text-slate-500">{entry.author}</span>}
+            {entry.author && (
+              <span className="text-[0.6875rem] text-slate-500">{entry.author}</span>
+            )}
             <span className="text-[0.6875rem] text-slate-400">{timeAgo(entry.pubDate)}</span>
             {read && <span className="text-[0.6875rem] text-blue-600">Read</span>}
           </div>
 
           {hasAiSummary && (
-            <div className={`mt-2 text-sm leading-relaxed rounded-md px-3 py-2 border ${sourceColor(entry.aiSummarySource)}`}>
+            <div
+              className={`mt-2 text-sm leading-relaxed rounded-md px-3 py-2 border ${sourceColor(entry.aiSummarySource)}`}
+            >
               <span className="text-[0.65rem] font-semibold uppercase tracking-wider opacity-70 mr-1">
                 {sourceLabel(entry.aiSummarySource)}
               </span>
@@ -99,7 +122,10 @@ export default function EntryCard({ entry, compact, onChange }: EntryCardProps) 
           {entry.aiTags && entry.aiTags.length > 0 && (
             <div className="flex flex-wrap gap-1 mt-2">
               {entry.aiTags.map((tag) => (
-                <span key={tag} className="text-[0.65rem] px-2 py-0.5 rounded-full bg-blue-50 text-blue-700 border border-blue-100">
+                <span
+                  key={tag}
+                  className="text-[0.65rem] px-2 py-0.5 rounded-full bg-blue-50 text-blue-700 border border-blue-100"
+                >
                   {tag}
                 </span>
               ))}

@@ -46,42 +46,43 @@ function makeCatalog() {
 
 async function collectRuntimeErrors(page: Page) {
   const errors: string[] = [];
-  page.on("pageerror", error => errors.push(`pageerror: ${error.message}`));
-  page.on("console", message => {
+  page.on("pageerror", (error) => errors.push(`pageerror: ${error.message}`));
+  page.on("console", (message) => {
     const text = message.text();
     const isExpectedNetworkDiagnostic =
-      text.startsWith("Failed to load resource:") ||
-      text.includes("Cross-Origin Request Blocked:");
+      text.startsWith("Failed to load resource:") || text.includes("Cross-Origin Request Blocked:");
     if (message.type() === "error" && !isExpectedNetworkDiagnostic) errors.push(`console: ${text}`);
   });
   return errors;
 }
 
 async function mockSmokeBackend(page: Page, title = "CivicFeed Test Entry") {
-  await page.route("**/api/feeds", route =>
+  await page.route("**/api/feeds", (route) =>
     route.fulfill({
       status: 200,
       contentType: "application/json",
       body: JSON.stringify(makeCatalog()),
-    }),
+    })
   );
-  await page.route("**/api/feeds/feed-001/articles", route =>
+  await page.route("**/api/feeds/feed-001/articles", (route) =>
     route.fulfill({
       status: 200,
       contentType: "application/json",
       body: JSON.stringify(makeArticles("feed-001", "ITA News", title, "browser-smoke-entry")),
-    }),
+    })
   );
-  await page.route("**/api/articles/recent*", route =>
+  await page.route("**/api/articles/recent*", (route) =>
     route.fulfill({
       status: 200,
       contentType: "application/json",
       body: JSON.stringify({ results: [] }),
-    }),
+    })
   );
 }
 
-test("desktop user can search, open, and read a feed entry without runtime errors", async ({ page }, testInfo) => {
+test("desktop user can search, open, and read a feed entry without runtime errors", async ({
+  page,
+}, testInfo) => {
   test.skip(testInfo.project.name.includes("mobile"), "desktop-only path");
   const runtimeErrors = await collectRuntimeErrors(page);
   await mockSmokeBackend(page);
@@ -90,7 +91,10 @@ test("desktop user can search, open, and read a feed entry without runtime error
   await expect(page.getByRole("heading", { name: "U.S. Government RSS Feeds" })).toBeVisible();
 
   await page.getByRole("combobox", { name: "Search feeds" }).fill("ITA News");
-  await page.getByRole("option", { name: /ITA News/i }).first().click();
+  await page
+    .getByRole("option", { name: /ITA News/i })
+    .first()
+    .click();
 
   await expect(page).toHaveURL(/#\/feed\/feed-001$/);
   await expect(page.getByRole("heading", { name: "ITA News" })).toBeVisible();
@@ -99,29 +103,31 @@ test("desktop user can search, open, and read a feed entry without runtime error
   expect(runtimeErrors).toEqual([]);
 });
 
-test("feed failures show an explicit empty/error state instead of a blank screen", async ({ page }, testInfo) => {
+test("feed failures show an explicit empty/error state instead of a blank screen", async ({
+  page,
+}, testInfo) => {
   test.skip(testInfo.project.name.includes("mobile"), "desktop-only path");
   const runtimeErrors = await collectRuntimeErrors(page);
-  await page.route("**/api/feeds", route =>
+  await page.route("**/api/feeds", (route) =>
     route.fulfill({
       status: 200,
       contentType: "application/json",
       body: JSON.stringify(makeCatalog()),
-    }),
+    })
   );
-  await page.route("**/api/feeds/feed-001/articles", route =>
+  await page.route("**/api/feeds/feed-001/articles", (route) =>
     route.fulfill({
       status: 502,
       contentType: "application/json",
       body: JSON.stringify({ entries: [], cached: false, error: "Feed unavailable" }),
-    }),
+    })
   );
-  await page.route("**/api/articles/recent*", route =>
+  await page.route("**/api/articles/recent*", (route) =>
     route.fulfill({
       status: 200,
       contentType: "application/json",
       body: JSON.stringify({ results: [] }),
-    }),
+    })
   );
 
   await page.goto("/#/feed/feed-001");
@@ -141,7 +147,10 @@ test("mobile layout exposes the directory and navigates to detail", async ({ pag
   await page.getByRole("button", { name: /All Feeds/i }).click();
 
   await expect(page).toHaveURL(/#\/feeds$/);
-  await page.getByRole("button", { name: /ITA News/i }).first().click();
+  await page
+    .getByRole("button", { name: /ITA News/i })
+    .first()
+    .click();
   await expect(page).toHaveURL(/#\/feed\/feed-001$/);
   await expect(page.getByText("Mobile CivicFeed Entry")).toBeVisible();
   expect(runtimeErrors).toEqual([]);

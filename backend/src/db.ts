@@ -55,7 +55,9 @@ function seedFeeds() {
     }
 
     const placeholders = feeds.map(() => "?").join(", ");
-    db.prepare(`DELETE FROM feeds WHERE id NOT IN (${placeholders})`).run(...feeds.map((feed) => feed.id));
+    db.prepare(`DELETE FROM feeds WHERE id NOT IN (${placeholders})`).run(
+      ...feeds.map((feed) => feed.id)
+    );
   })();
 
   console.log(`Synced ${feeds.length} feeds.`);

@@ -200,7 +200,13 @@ export async function guardedFetch(inputUrl: string): Promise<GuardedFetchResult
     if (res.status >= 300 && res.status < 400) {
       const location = res.headers.get("location");
       if (!location) {
-        return { ok: false, status: res.status, text: "", error: "Redirect without Location header", truncated: false };
+        return {
+          ok: false,
+          status: res.status,
+          text: "",
+          error: "Redirect without Location header",
+          truncated: false,
+        };
       }
       url = new URL(location, validated).toString();
       redirectCount++;
@@ -208,7 +214,13 @@ export async function guardedFetch(inputUrl: string): Promise<GuardedFetchResult
     }
 
     if (!res.ok) {
-      return { ok: false, status: res.status, text: "", error: `HTTP ${res.status}`, truncated: false };
+      return {
+        ok: false,
+        status: res.status,
+        text: "",
+        error: `HTTP ${res.status}`,
+        truncated: false,
+      };
     }
 
     const { text, truncated } = await readBodyWithLimit(res);

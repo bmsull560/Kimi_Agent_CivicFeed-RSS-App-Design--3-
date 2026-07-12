@@ -100,7 +100,9 @@ async function main() {
   seedFeeds();
 
   const selected = selectFeeds(options);
-  console.log(`Ingesting ${selected.length} working feeds${options.enrich ? " with enrichment" : ""}...`);
+  console.log(
+    `Ingesting ${selected.length} working feeds${options.enrich ? " with enrichment" : ""}...`
+  );
 
   const results: IngestResult[] = [];
   for (const feed of selected) {
@@ -116,8 +118,12 @@ async function main() {
 
   const ok = results.filter((result) => result.status === "ok").length;
   const failed = results.length - ok;
-  const articleCount = (db.prepare("SELECT COUNT(*) as c FROM article_cache").get() as { c: number }).c;
-  const cachedFeeds = (db.prepare("SELECT COUNT(DISTINCT feed_id) as c FROM article_cache").get() as { c: number }).c;
+  const articleCount = (
+    db.prepare("SELECT COUNT(*) as c FROM article_cache").get() as { c: number }
+  ).c;
+  const cachedFeeds = (
+    db.prepare("SELECT COUNT(DISTINCT feed_id) as c FROM article_cache").get() as { c: number }
+  ).c;
 
   console.log(`\nIngestion complete: ${ok} ok, ${failed} failed.`);
   console.log(`Cache now contains ${articleCount} articles across ${cachedFeeds} feeds.`);

@@ -34,7 +34,12 @@ describe("search", () => {
 
   it("finds articles by description", () => {
     const feedId = insertTestFeed();
-    saveArticles(feedId, [makeEntry({ id: "e1", title: "Update", description: "Funding for bridges and roads." }, feedId)]);
+    saveArticles(feedId, [
+      makeEntry(
+        { id: "e1", title: "Update", description: "Funding for bridges and roads." },
+        feedId
+      ),
+    ]);
 
     const results = searchArticles("bridges");
     expect(results).toHaveLength(1);
@@ -43,7 +48,9 @@ describe("search", () => {
 
   it("limits the number of results", () => {
     const feedId = insertTestFeed();
-    const entries = Array.from({ length: 5 }, (_, i) => makeEntry({ id: `e${i}`, title: `Common ${i}` }, feedId));
+    const entries = Array.from({ length: 5 }, (_, i) =>
+      makeEntry({ id: `e${i}`, title: `Common ${i}` }, feedId)
+    );
     saveArticles(feedId, entries);
 
     expect(searchArticles("Common", 2)).toHaveLength(2);
