@@ -46,7 +46,11 @@ interface SearchRow {
  * single round-trip. Correlated scalar subqueries replace the previous N+1
  * lookups against article_summaries and article_tags.
  */
-export function searchArticles(query: string, limit: number = 20): SearchResult[] {
+export function searchArticles(
+  query: string,
+  limit: number = 20,
+  offset: number = 0
+): SearchResult[] {
   if (!query || query.trim().length < 2) return [];
 
   // Escape FTS5 special chars by doubling double-quotes.
@@ -70,10 +74,10 @@ export function searchArticles(query: string, limit: number = 20): SearchResult[
     JOIN feeds AS f ON ac.feed_id = f.id
     WHERE article_search MATCH ?
     ORDER BY s.rank
-    LIMIT ?
+    LIMIT ? OFFSET ?
   `);
 
-  const rows = stmt.all(`"${safeQuery}"*`, limit) as SearchRow[];
+  const rows = stmt.all(`"${safeQuery}"*`, limit, offset) as SearchRow[];
 
   return rows.map((r) => ({
     entryId: r.entry_id,
@@ -96,7 +100,7 @@ export function searchArticles(query: string, limit: number = 20): SearchResult[
  * Like searchArticles, this resolves summaries and tags inline so the database
  * is queried exactly once.
  */
-export function getRecentArticles(limit: number = 50): SearchResult[] {
+export function getRecentArticles(limit: number = 50, offset: number = 0): SearchResult[] {
   const stmt = db.prepare(`
     SELECT
       ac.entry_id AS entry_id,
@@ -112,10 +116,10 @@ export function getRecentArticles(limit: number = 50): SearchResult[] {
     FROM article_cache AS ac
     JOIN feeds AS f ON ac.feed_id = f.id
     ORDER BY ac.pub_date DESC
-    LIMIT ?
+    LIMIT ? OFFSET ?
   `);
 
-  const rows = stmt.all(limit) as SearchRow[];
+  const rows = stmt.all(limit, offset) as SearchRow[];
 
   return rows.map((r) => ({
     entryId: r.entry_id,
