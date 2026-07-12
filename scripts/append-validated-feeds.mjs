@@ -4,7 +4,7 @@ import vm from "node:vm";
 import ts from "typescript";
 
 const root = process.cwd();
-const feedsPath = path.join(root, "src", "data", "feeds.ts");
+const feedsPath = path.join(root, "backend", "src", "feeds.ts");
 
 const args = new Map();
 for (let index = 2; index < process.argv.length; index += 2) {

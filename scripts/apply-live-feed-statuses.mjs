@@ -4,7 +4,7 @@ import path from "node:path";
 const root = process.cwd();
 const resultPath = process.argv[2] ?? path.join("artifacts", "live-feed-validation.json");
 const absoluteResultPath = path.resolve(root, resultPath);
-const feedsPath = path.join(root, "src", "data", "feeds.ts");
+const feedsPath = path.join(root, "backend", "src", "feeds.ts");
 
 if (!fs.existsSync(absoluteResultPath)) {
   console.error(`Validation result not found: ${path.relative(root, absoluteResultPath)}`);

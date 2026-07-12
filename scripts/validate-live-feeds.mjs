@@ -30,12 +30,6 @@ const ids = new Set((args.get("ids") ?? "").split(",").map((id) => id.trim()).fi
 const statuses = new Set((args.get("status") ?? "").split(",").map((status) => status.trim()).filter(Boolean));
 const discover = args.get("discover") === "true";
 
-const proxyUrls = [
-  (url) => `https://api.allorigins.win/raw?url=${encodeURIComponent(url)}`,
-  (url) => `https://api.codetabs.com/v1/proxy?quest=${encodeURIComponent(url)}`,
-  (url) => `https://corsproxy.io/?${encodeURIComponent(url)}`,
-];
-
 function loadTsModule(relativePath) {
   const filename = path.join(root, relativePath);
   const source = fs.readFileSync(filename, "utf8");
@@ -62,8 +56,9 @@ function loadTsModule(relativePath) {
   return sandbox.module.exports;
 }
 
-const { feeds } = loadTsModule("src/data/feeds.ts");
-const { parseRssXml } = loadTsModule("src/lib/rss.ts");
+// All feed metadata now lives in the backend catalog; parsing lives there too.
+const { feeds } = loadTsModule("backend/src/feeds.ts");
+const { parseRssXml } = loadTsModule("backend/src/rss-parser.ts");
 
 function classifyFormat(xmlText) {
   const text = xmlText.slice(0, 5000).toLowerCase();
@@ -123,7 +118,7 @@ async function fetchWithTimeout(url, timeout) {
       signal: controller.signal,
       headers: {
         "Accept": "application/rss+xml, application/atom+xml, application/xml, text/xml, */*",
-        "User-Agent": "Feedly/1.0 (+http://www.feedly.com/fetcher.html)",
+        "User-Agent": "CivicFeed-LiveValidator/1.0",
       },
       redirect: "follow",
     });
@@ -137,7 +132,7 @@ async function validateUrl(url, feed) {
   const response = await fetchWithTimeout(url, timeoutMs);
   const responseTimeMs = Date.now() - startedAt;
   const text = await response.text();
-  const entries = response.ok ? parseRssXml(text, feed.id, feed.shortName, url) : [];
+  const entries = response.ok ? parseRssXml(text, feed.id, feed.shortName) : [];
   return {
     response,
     responseTimeMs,
@@ -180,15 +175,8 @@ async function validateFeed(feed) {
     const { parsed: primary, result: primaryResult } = await tryParseUrl(feed.rssUrl, feed, "direct", startedAt);
     if (primaryResult) return primaryResult;
 
-    for (const proxyUrl of proxyUrls.map((makeUrl) => makeUrl(feed.rssUrl))) {
-      try {
-        const { result } = await tryParseUrl(proxyUrl, feed, "proxy", startedAt);
-        if (result) return result;
-      } catch {
-        continue;
-      }
-    }
-
+    // Public CORS proxies are intentionally not used in production validation.
+    // If the direct feed is unreachable, optionally discover an alternate feed URL.
     if (discover && primary.response.ok && primary.text) {
       const candidates = extractDiscoveredFeedCandidates(primary.text, primary.response.url || feed.rssUrl);
       for (const candidate of candidates) {

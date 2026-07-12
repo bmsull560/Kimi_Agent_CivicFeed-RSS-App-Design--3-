@@ -17,6 +17,32 @@ import { MemoryRouter } from "react-router-dom";
 import App from "../src/App";
 
 const storage = new Map<string, string>();
+// Seed a user-added override for feed-001 so route-render smoke tests can
+// exercise the feed-detail route without a running backend API.
+storage.set("civicfeed_v2_user", JSON.stringify({
+  version: 1,
+  feeds: [{
+    id: "feed-001",
+    name: "ITA News",
+    shortName: "ITA News",
+    agency: "International Trade Administration",
+    description: "ITA News",
+    rssUrl: "https://example.com/feed-001.xml",
+    website: "https://example.com/feed-001",
+    department: "Commerce",
+    category: "Commerce",
+    subCategory: "Commerce",
+    contentType: "News",
+    updateFrequency: "Daily",
+    status: "working",
+    tags: ["trade"],
+    userAdded: true,
+    enabled: true,
+    addedAt: Date.now(),
+  }],
+  articleState: { read: [], bookmarked: [], archived: [] },
+  preferences: { defaultView: "list", reduceMotion: false },
+}));
 globalThis.localStorage = {
   getItem: (key: string) => storage.get(key) ?? null,
   setItem: (key: string, value: string) => { storage.set(key, String(value)); },

@@ -11,18 +11,18 @@
     "type-check": "tsc -b",
     "test": "playwright test --config playwright.config.ts",
     "test:install": "playwright install --with-deps",
+    "test:live": "playwright test --config playwright.live.config.ts",
     "preview": "vite preview",
     "audit:acceptance": "node scripts/audit-acceptance.mjs",
     "validate:live-feeds": "node scripts/validate-live-feeds.mjs",
     "apply:live-feed-statuses": "node scripts/apply-live-feed-statuses.mjs",
     "sync:working-feeds": "node scripts/sync-working-feeds.mjs",
-    "verify:feeds": "node scripts/verify-feeds.mjs && node scripts/verify-backend-catalog-sync.mjs",
-    "verify:rss-cache": "node scripts/verify-rss-cache.mjs",
+    "verify:feeds": "node scripts/verify-feeds.mjs",
     "verify:routes": "node scripts/verify-route-render.mjs",
     "verify:browser": "playwright test --config playwright.config.ts",
     "verify:accessibility": "playwright test --config playwright.config.ts tests/e2e/civicfeed-accessibility.spec.ts",
     "verify:dist": "node scripts/verify-dist.mjs",
-    "verify": "npm run lint && npm run verify:feeds && npm run verify:rss-cache && npm run verify:routes && npm run build && npm run verify:dist && npm run verify:browser"
+    "verify": "npm run lint && npm run verify:feeds && npm run audit:acceptance && npm run verify:routes && npm run build && npm run verify:dist && npm run verify:browser"
   },
   "dependencies": {
     "@hookform/resolvers": "^5.2.2",

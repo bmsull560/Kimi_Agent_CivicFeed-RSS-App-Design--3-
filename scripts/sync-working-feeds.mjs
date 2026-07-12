@@ -4,7 +4,7 @@ import vm from "node:vm";
 import ts from "typescript";
 
 const root = process.cwd();
-const feedsPath = path.join(root, "src", "data", "feeds.ts");
+const feedsPath = path.join(root, "backend", "src", "feeds.ts");
 const source = fs.readFileSync(feedsPath, "utf8");
 
 const compiled = ts.transpileModule(source, {
