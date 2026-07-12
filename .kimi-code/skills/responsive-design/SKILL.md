@@ -19,8 +19,6 @@ maintainers:
   - github: maddhruv
 ---
 
-When this skill is activated, always start your first response with the 🧢 emoji.
-
 # Responsive Design
 
 A production-grade reference for building responsive web experiences that adapt
@@ -492,9 +490,7 @@ Fluid spacing that adapts to viewport size without breakpoints.
 
 ## References
 
-For detailed pattern examples, load the relevant reference file:
-
-- `references/breakpoint-patterns.md` - Common responsive layout patterns with CSS examples
+Pattern examples are included inline throughout this document. The upstream `references/breakpoint-patterns.md` companion file is not vendored in this repository.
 
 ---
 

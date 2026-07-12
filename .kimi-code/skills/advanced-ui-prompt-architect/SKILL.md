@@ -1,9 +1,9 @@
 ---
-name: agent-system-prompt-architect
+name: advanced-ui-prompt-architect
 description: Use when designing, reviewing, revising, or templating deployable system prompts for agent projects, especially prompts needing clear roles, task boundaries, tool-use rules, evidence handling, output formats, safety behavior, or compact runtime-ready structure.
 ---
 
-# Agent System Prompt Architect
+# Advanced UI Prompt Architect
 
 ## Goal
 
