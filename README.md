@@ -105,23 +105,23 @@ Copy `.env.example` to `.env` and adjust as needed:
 cp .env.example .env
 ```
 
-| Variable | Used In | Default | Description |
-|----------|---------|---------|-------------|
-| `VITE_API_URL` | Frontend | `""` | Base URL for backend API calls. When empty, the frontend uses same-origin `/api` (proxied by Vite/nginx) plus `http://localhost:4000` in local dev. |
-| `PORT` | Backend | `4000` | Port the Express API listens on. |
-| `CIVICFEED_DB_PATH` | Backend | `backend/data/civicfeed.db` | Path to the SQLite database file. |
-| `CIVICFEED_LOG_LEVEL` | Backend | `info` | Controls backend log verbosity: `error`, `warn`, `info`, or `silent`. |
-| `CIVICFEED_REFRESH_INTERVAL_MS` | Backend | `60000` | Milliseconds between background refreshes of due feeds. Set to `0` to disable scheduled refreshes. |
+| Variable                        | Used In  | Default                     | Description                                                                                                                                         |
+| ------------------------------- | -------- | --------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `VITE_API_URL`                  | Frontend | `""`                        | Base URL for backend API calls. When empty, the frontend uses same-origin `/api` (proxied by Vite/nginx) plus `http://localhost:4000` in local dev. |
+| `PORT`                          | Backend  | `4000`                      | Port the Express API listens on.                                                                                                                    |
+| `CIVICFEED_DB_PATH`             | Backend  | `backend/data/civicfeed.db` | Path to the SQLite database file.                                                                                                                   |
+| `CIVICFEED_LOG_LEVEL`           | Backend  | `info`                      | Controls backend log verbosity: `error`, `warn`, `info`, or `silent`.                                                                               |
+| `CIVICFEED_REFRESH_INTERVAL_MS` | Backend  | `60000`                     | Milliseconds between background refreshes of due feeds. Set to `0` to disable scheduled refreshes.                                                  |
 
 ## Data Storage & Privacy
 
 CivicFeed is designed as a local-first application with no authentication or cloud sync.
 
-| Data | Location | Lifetime | Notes |
-|------|----------|----------|-------|
-| Feed catalog (default sources) | `backend/src/feeds.ts` | Shipped with the app | Public, curated list of civic RSS/Atom feeds. The backend is the single source of truth. |
-| User-added feeds, categories, bookmarks, read/unread state, archived articles, display preferences | Browser `localStorage` | Per-browser, until cleared | Tied to the origin (`localhost:3000`, `localhost:8080`, or the deployed domain). No encryption at rest. |
-| Article cache, search index, feed fetch status, feed health | Backend SQLite (`backend/data/civicfeed.db`) | Per-deployment | Stored on the server running the backend. No personal accounts; shared across all users of the same deployed instance. |
+| Data                                                                                               | Location                                     | Lifetime                   | Notes                                                                                                                  |
+| -------------------------------------------------------------------------------------------------- | -------------------------------------------- | -------------------------- | ---------------------------------------------------------------------------------------------------------------------- |
+| Feed catalog (default sources)                                                                     | `backend/src/feeds.ts`                       | Shipped with the app       | Public, curated list of civic RSS/Atom feeds. The backend is the single source of truth.                               |
+| User-added feeds, categories, bookmarks, read/unread state, archived articles, display preferences | Browser `localStorage`                       | Per-browser, until cleared | Tied to the origin (`localhost:3000`, `localhost:8080`, or the deployed domain). No encryption at rest.                |
+| Article cache, search index, feed fetch status, feed health                                        | Backend SQLite (`backend/data/civicfeed.db`) | Per-deployment             | Stored on the server running the backend. No personal accounts; shared across all users of the same deployed instance. |
 
 No analytics, tracking, or third-party telemetry are included. External URLs open in a new tab with `rel="noopener noreferrer"`. Feed content is fetched directly by the backend; no public CORS proxies are used.
 
@@ -250,24 +250,30 @@ The frontend image builds the Vite SPA and serves it via nginx, which also proxi
 
 A GitHub Actions workflow (`.github/workflows/ci.yml`) runs the full quality suite on every push and pull request:
 
-- Frontend lint, type-check, build, feed-catalog verification, acceptance audit, route rendering, dist verification, cross-browser Playwright tests, and automated accessibility scans.
-- Backend type-check, unit tests, and dependency audit.
+- Frontend lint, format check, type-check, build, feed-catalog verification, acceptance audit, route rendering, dist verification, cross-browser Playwright tests, and automated accessibility scans.
+- Backend lint, type-check, unit tests, and dependency audit.
 
 You can run the same gates locally:
 
 ```bash
 npm run lint
+npm run format:check
 npm run type-check
 npm run build
 npm run verify:feeds
 npm run audit:acceptance
 npm run verify:routes
 npm run verify:dist
+cd backend && npm run lint
 cd backend && npm run type-check
 cd backend && npm test
 npm run verify:browser         # requires Playwright browsers: npm run test:install
 npm run verify:accessibility   # requires Playwright browsers
 ```
+
+## Contributing
+
+See [`CONTRIBUTING.md`](CONTRIBUTING.md) for setup, workflow, and quality expectations. Agents and automated contributors should also read [`AGENTS.md`](AGENTS.md). Security concerns are covered in [`SECURITY.md`](SECURITY.md).
 
 ## Known Limitations
 
