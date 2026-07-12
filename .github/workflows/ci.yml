@@ -32,6 +32,10 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
+      - name: Install backend dependencies for E2E setup
+        working-directory: backend
+        run: npm ci
+
       - name: Audit dependencies
         run: npm audit --audit-level=low
 
