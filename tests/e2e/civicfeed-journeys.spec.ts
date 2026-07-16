@@ -483,7 +483,9 @@ test("user bookmarks and marks an article as read", async ({ page }, testInfo) =
   await page.getByRole("article").getByRole("button", { name: "Mark read" }).click();
 
   await expect(page.getByRole("button", { name: "Remove bookmark" })).toBeVisible();
-  await expect(page.locator("article").getByText("Read")).toBeVisible();
+  await expect(
+    page.getByRole("article").getByRole("button", { name: "Mark unread" })
+  ).toBeVisible();
   expect(runtimeErrors).toEqual([]);
 });
 
@@ -602,10 +604,16 @@ test("core navigation works at mobile and desktop widths", async ({ page }, test
   await page.goto("/");
   await expect(page.getByRole("heading", { name: "U.S. Government RSS Feeds" })).toBeVisible();
   await page.getByRole("button", { name: "Toggle menu" }).click();
-  await page.getByRole("button", { name: /Reading Stream/i }).click();
+  await page
+    .getByRole("navigation", { name: "Feed categories" })
+    .getByRole("button", { name: "Reading Stream" })
+    .click();
   await expect(page).toHaveURL(/\/reading$/);
   await page.getByRole("button", { name: "Toggle menu" }).click();
-  await page.getByRole("button", { name: /Bookmarks/i }).click();
+  await page
+    .getByRole("navigation", { name: "Feed categories" })
+    .getByRole("button", { name: "Bookmarks" })
+    .click();
   await expect(page).toHaveURL(/\/bookmarks$/);
   expect(runtimeErrors).toEqual([]);
 });

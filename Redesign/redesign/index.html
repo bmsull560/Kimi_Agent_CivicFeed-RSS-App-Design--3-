@@ -1,0 +1,1031 @@
+<!doctype html>
+<html lang="en" class="dark">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Civic Clarity — Redesign Proposal & Strategy Hub</title>
+
+    <!-- Fonts: Lora (Serif) & Inter (Sans-serif) -->
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Lora:ital,wght@0,400;0,500;0,600;0,700;1,400&display=swap"
+      rel="stylesheet"
+    />
+
+    <!-- CSS Deliverables -->
+    <link rel="stylesheet" href="styles.css" />
+
+    <!-- TailWind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+      tailwind.config = {
+        darkMode: "class",
+        theme: {
+          extend: {
+            colors: {
+              civic: {
+                navy: {
+                  50: "#f0f4f8",
+                  500: "#1d3557",
+                  800: "#112240",
+                  900: "#0f1e33",
+                  950: "#0b1329",
+                },
+                gold: {
+                  400: "#fbbf24",
+                  500: "#d97706",
+                },
+                sage: {
+                  400: "#4ade80",
+                  500: "#2f855a",
+                  900: "#14532d",
+                },
+                slate: {
+                  50: "#f7fafc",
+                  800: "#1e293b",
+                  900: "#0f172a",
+                  950: "#020617",
+                },
+              },
+            },
+            fontFamily: {
+              sans: ["Inter", "system-ui", "sans-serif"],
+              serif: ["Lora", "Georgia", "serif"],
+            },
+          },
+        },
+      };
+    </script>
+
+    <!-- Lucide Icons CDN -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+  </head>
+  <body
+    class="bg-civic-slate-950 text-slate-100 font-sans selection:bg-civic-gold-500 selection:text-civic-slate-950 transition-colors duration-300"
+  >
+    <!-- Header Banner -->
+    <header
+      class="border-b border-civic-slate-800 bg-civic-navy-950/80 backdrop-blur sticky top-0 z-50"
+    >
+      <div
+        class="max-w-7xl mx-auto px-6 py-4 flex flex-col sm:flex-row items-center justify-between gap-4"
+      >
+        <div class="flex items-center gap-3">
+          <div
+            class="p-2.5 bg-gradient-to-tr from-civic-navy-500 to-civic-gold-500 rounded-lg shadow-inner"
+          >
+            <i data-lucide="landmark" class="w-6 h-6 text-white"></i>
+          </div>
+          <div>
+            <span class="text-xs uppercase tracking-widest font-semibold text-civic-gold-500"
+              >Proposal & Strategy Workspace</span
+            >
+            <h1
+              class="text-2xl font-serif font-bold text-white tracking-tight flex items-center gap-2"
+            >
+              Civic Clarity
+              <span
+                class="text-xs font-sans px-2 py-0.5 rounded-full border border-civic-sage-500 text-civic-sage-400 bg-civic-sage-900/30"
+                >CivicFeed Overhaul v3.0</span
+              >
+            </h1>
+          </div>
+        </div>
+
+        <div class="flex items-center gap-3 w-full sm:w-auto">
+          <button
+            id="btn-export-workspace"
+            class="flex-1 sm:flex-none flex items-center justify-center gap-2 px-4 py-2.5 bg-gradient-to-r from-civic-gold-500 to-amber-600 hover:from-civic-gold-400 hover:to-amber-500 text-civic-slate-950 font-semibold rounded-lg shadow-lg hover:shadow-civic-gold-500/10 transition-all active:scale-95 text-sm"
+          >
+            <i data-lucide="download" class="w-4 h-4"></i>
+            <span>Export Master Report (.md)</span>
+          </button>
+          <button
+            id="btn-reset-workspace"
+            class="p-2.5 bg-civic-slate-900 hover:bg-civic-slate-800 text-slate-400 hover:text-red-400 border border-civic-slate-800 rounded-lg transition-colors"
+            title="Reset Workspace to Defaults"
+          >
+            <i data-lucide="rotate-ccw" class="w-5 h-5"></i>
+          </button>
+        </div>
+      </div>
+    </header>
+
+    <!-- Layout: Sidebar and Main Content -->
+    <div class="max-w-7xl mx-auto px-6 py-8 grid grid-cols-1 lg:grid-cols-4 gap-8">
+      <!-- Sidebar Navigation -->
+      <aside class="lg:col-span-1 space-y-6">
+        <div
+          class="bg-civic-navy-900/40 border border-civic-slate-800 rounded-xl p-4 sticky top-24 space-y-3"
+        >
+          <h3
+            class="text-xs font-semibold uppercase tracking-wider text-slate-400 px-2 pb-2 border-b border-civic-slate-800/60"
+          >
+            Proposal Chapters
+          </h3>
+          <nav class="space-y-1">
+            <a
+              href="#vision"
+              class="nav-item flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm text-slate-300 hover:text-white hover:bg-civic-slate-900 transition-all font-medium border border-transparent"
+            >
+              <i data-lucide="sparkles" class="w-4 h-4 text-civic-gold-500"></i>
+              <span>1. Design Vision</span>
+            </a>
+            <a
+              href="#tokens"
+              class="nav-item flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm text-slate-300 hover:text-white hover:bg-civic-slate-900 transition-all font-medium border border-transparent"
+            >
+              <i data-lucide="palette" class="w-4 h-4 text-sky-400"></i>
+              <span>2. Design System Tokens</span>
+            </a>
+            <a
+              href="#sitemap-builder"
+              class="nav-item flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm text-slate-300 hover:text-white hover:bg-civic-slate-900 transition-all font-medium border border-transparent"
+            >
+              <i data-lucide="network" class="w-4 h-4 text-civic-gold-500"></i>
+              <span>3. Sitemap Builder</span>
+            </a>
+            <a
+              href="#features"
+              class="nav-item flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm text-slate-300 hover:text-white hover:bg-civic-slate-900 transition-all font-medium border border-transparent"
+            >
+              <i data-lucide="layers" class="w-4 h-4 text-purple-400"></i>
+              <span>4. Key Enhancements</span>
+            </a>
+            <a
+              href="#interactions"
+              class="nav-item flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm text-slate-300 hover:text-white hover:bg-civic-slate-900 transition-all font-medium border border-transparent"
+            >
+              <i data-lucide="activity" class="w-4 h-4 text-civic-sage-400"></i>
+              <span>5. Micro-Interactions</span>
+            </a>
+            <a
+              href="#contrast-tool"
+              class="nav-item flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm text-slate-300 hover:text-white hover:bg-civic-slate-900 transition-all font-medium border border-transparent"
+            >
+              <i data-lucide="eye" class="w-4 h-4 text-teal-400"></i>
+              <span>6. WCAG Contrast Tool</span>
+            </a>
+            <a
+              href="#tech-stack"
+              class="nav-item flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm text-slate-300 hover:text-white hover:bg-civic-slate-900 transition-all font-medium border border-transparent"
+            >
+              <i data-lucide="cpu" class="w-4 h-4 text-indigo-400"></i>
+              <span>7. Technology Stack</span>
+            </a>
+            <a
+              href="#roadmap"
+              class="nav-item flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm text-slate-300 hover:text-white hover:bg-civic-slate-900 transition-all font-medium border border-transparent"
+            >
+              <i data-lucide="calendar" class="w-4 h-4 text-amber-500"></i>
+              <span>8. Interactive Roadmap</span>
+            </a>
+            <a
+              href="#metrics"
+              class="nav-item flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm text-slate-300 hover:text-white hover:bg-civic-slate-900 transition-all font-medium border border-transparent"
+            >
+              <i data-lucide="bar-chart-3" class="w-4 h-4 text-civic-sage-400"></i>
+              <span>9. Success Metrics</span>
+            </a>
+          </nav>
+
+          <!-- Live Workspace Stats -->
+          <div class="pt-4 border-t border-civic-slate-800/80 space-y-3">
+            <span class="text-xs font-semibold text-slate-400 tracking-wider uppercase block px-2"
+              >Active Workspace State</span
+            >
+            <div
+              class="bg-civic-slate-950/80 rounded-lg p-3 space-y-2 text-xs border border-civic-slate-800"
+            >
+              <div class="flex justify-between">
+                <span class="text-slate-400">Sitemap Nodes:</span>
+                <span id="stat-sitemap-count" class="font-mono text-civic-gold-400 font-bold"
+                  >0</span
+                >
+              </div>
+              <div class="flex justify-between">
+                <span class="text-slate-400">Gantt Tasks:</span>
+                <span id="stat-gantt-count" class="font-mono text-sky-400 font-bold">0</span>
+              </div>
+              <div class="flex justify-between">
+                <span class="text-slate-400">Completed Checks:</span>
+                <span id="stat-checks-count" class="font-mono text-civic-sage-400 font-bold"
+                  >0/0</span
+                >
+              </div>
+              <div
+                class="flex justify-between items-center pt-1 border-t border-civic-slate-800/60"
+              >
+                <span class="text-slate-400">Last Synced:</span>
+                <span id="stat-last-saved" class="text-[10px] text-slate-500">Just now</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </aside>
+
+      <!-- Main Workspace Stream -->
+      <main class="lg:col-span-3 space-y-12">
+        <!-- Welcome Intro Banner -->
+        <section
+          class="relative overflow-hidden bg-gradient-to-br from-civic-navy-900/50 via-civic-navy-950 to-civic-slate-950 border border-civic-slate-800 rounded-2xl p-8 shadow-2xl"
+        >
+          <div class="absolute top-0 right-0 p-8 opacity-5 pointer-events-none">
+            <i data-lucide="landmark" class="w-64 h-64"></i>
+          </div>
+          <div class="relative z-10 max-w-2xl space-y-4">
+            <span
+              class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-civic-gold-500/10 border border-civic-gold-500/30 text-xs font-medium text-civic-gold-400"
+            >
+              <span class="w-1.5 h-1.5 rounded-full bg-civic-gold-500 animate-pulse"></span>
+              Comprehensive Overhaul Blueprint
+            </span>
+            <h2 class="text-4xl font-serif font-bold text-white tracking-tight leading-tight">
+              An Authoritative Platform Designed for Human-Scale Civic Understanding
+            </h2>
+            <p class="text-slate-300 leading-relaxed font-sans">
+              Federal communications shouldn't require a law degree. Civic Clarity transforms 505
+              disjointed federal agency RSS feeds across 21 bureaucratic categories into a highly
+              intuitive, warm editorial experience designed specifically for citizens and policy
+              researchers.
+            </p>
+            <div class="pt-2 flex flex-wrap gap-4 text-xs text-slate-400 font-mono">
+              <span class="flex items-center gap-1"
+                ><i data-lucide="check-circle" class="w-4 h-4 text-civic-sage-400"></i> Local
+                Auto-save Active</span
+              >
+              <span class="flex items-center gap-1"
+                ><i data-lucide="accessibility" class="w-4 h-4 text-civic-gold-400"></i> Target WCAG
+                2.2 AAA</span
+              >
+            </div>
+          </div>
+        </section>
+
+        <!-- Section 1: Design Philosophy & Vision -->
+        <section id="vision" class="space-y-6 scroll-mt-24">
+          <div class="border-b border-civic-slate-800 pb-4">
+            <span class="text-civic-gold-500 font-mono text-sm tracking-wider uppercase block"
+              >01 / Aesthetic Mandate</span
+            >
+            <h3 class="text-3xl font-serif font-bold text-white tracking-tight">
+              Warm Civic Minimalist Philosophy
+            </h3>
+          </div>
+
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div
+              class="bg-civic-navy-900/20 border border-civic-slate-800/80 rounded-xl p-6 space-y-4"
+            >
+              <h4 class="text-lg font-serif font-semibold text-white flex items-center gap-2">
+                <i data-lucide="library" class="w-5 h-5 text-civic-gold-500"></i>
+                The Civic-Library Paradox
+              </h4>
+              <p class="text-slate-300 text-sm leading-relaxed">
+                Traditional government portals and RSS readers suffer from dry, hostile, and
+                uninviting layout systems. We aim to present federal agency statements with absolute
+                institutional clarity, combined with the friendly atmosphere of a public library.
+                Our system utilizes 'Liberty Blue' to anchor structural layouts, while softening the
+                content stream with warm, legible serif typography and smart highlights.
+              </p>
+            </div>
+            <div
+              class="bg-civic-navy-900/20 border border-civic-slate-800/80 rounded-xl p-6 space-y-4"
+            >
+              <h4 class="text-lg font-serif font-semibold text-white flex items-center gap-2">
+                <i data-lucide="eye" class="w-5 h-5 text-civic-sage-400"></i>
+                Radical Progressive Disclosure
+              </h4>
+              <p class="text-slate-300 text-sm leading-relaxed">
+                We never expect general consumers or researchers to read raw, unformatted 100-page
+                federal registers immediately. Instead, we present agency releases in three
+                progressively deeper states: a quick 10-second AI policy summary, a 2-minute
+                narrative breakdown timeline, and a highly scannable link to the raw official agency
+                dossier.
+              </p>
+            </div>
+          </div>
+
+          <!-- Custom Personas Section -->
+          <div class="bg-civic-navy-900/20 border border-civic-slate-800 rounded-xl p-6 space-y-4">
+            <h4
+              class="text-xs font-semibold uppercase tracking-wider text-slate-400 border-b border-civic-slate-800/60 pb-2"
+            >
+              Target Audience Archetypes
+            </h4>
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <div class="bg-civic-slate-950/60 p-4 rounded-lg border border-civic-slate-800/80">
+                <span class="text-xs font-mono text-civic-gold-500">Archetype 01</span>
+                <h5 class="text-sm font-semibold text-white mt-1">
+                  Sarah (Investigative Journalist)
+                </h5>
+                <p class="text-xs text-slate-400 mt-2 leading-relaxed">
+                  Needs rapid, accurate, and comprehensive parsing of fast-moving federal policy
+                  shifts. Relies on structured sitemap streams and smart alerts.
+                </p>
+              </div>
+              <div class="bg-civic-slate-950/60 p-4 rounded-lg border border-civic-slate-800/80">
+                <span class="text-xs font-mono text-sky-400">Archetype 02</span>
+                <h5 class="text-sm font-semibold text-white mt-1">Marcus (Public Researcher)</h5>
+                <p class="text-xs text-slate-400 mt-2 leading-relaxed">
+                  Assembles deep dossiers regarding environment, tech regulation, and administrative
+                  updates. Demands advanced export functions and clean summaries.
+                </p>
+              </div>
+              <div class="bg-civic-slate-950/60 p-4 rounded-lg border border-civic-slate-800/80">
+                <span class="text-xs font-mono text-civic-sage-400">Archetype 03</span>
+                <h5 class="text-sm font-semibold text-white mt-1">Elena (Active Citizen)</h5>
+                <p class="text-xs text-slate-400 mt-2 leading-relaxed">
+                  Monitors space exploration, clean energy, and consumer health updates casually.
+                  Requires an intuitive visual layout with natural audio TTS features.
+                </p>
+              </div>
+            </div>
+          </div>
+
+          <div class="bg-civic-slate-900/40 border border-civic-slate-800 rounded-xl p-6">
+            <h4 class="text-xs font-semibold uppercase tracking-wider text-slate-400 mb-4">
+              Core Principles Checklist
+            </h4>
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <label
+                class="flex items-start gap-3 p-3 bg-civic-slate-950 border border-civic-slate-800/80 rounded-lg cursor-pointer hover:border-civic-gold-500/40 transition-colors"
+              >
+                <input
+                  type="checkbox"
+                  id="check-principle-1"
+                  class="workspace-checkbox mt-1 rounded border-slate-700 text-civic-gold-500 focus:ring-civic-gold-500 bg-slate-900"
+                />
+                <div>
+                  <span class="font-medium text-white text-sm block">Radical Accessibility</span>
+                  <span class="text-xs text-slate-400"
+                    >Target strict Level AAA conformance standards.</span
+                  >
+                </div>
+              </label>
+              <label
+                class="flex items-start gap-3 p-3 bg-civic-slate-950 border border-civic-slate-800/80 rounded-lg cursor-pointer hover:border-civic-gold-500/40 transition-colors"
+              >
+                <input
+                  type="checkbox"
+                  id="check-principle-2"
+                  class="workspace-checkbox mt-1 rounded border-slate-700 text-civic-gold-500 focus:ring-civic-gold-500 bg-slate-900"
+                />
+                <div>
+                  <span class="font-medium text-white text-sm block">Context-First Structure</span>
+                  <span class="text-xs text-slate-400"
+                    >Answer "why this feed matters" instantly.</span
+                  >
+                </div>
+              </label>
+              <label
+                class="flex items-start gap-3 p-3 bg-civic-slate-950 border border-civic-slate-800/80 rounded-lg cursor-pointer hover:border-civic-gold-500/40 transition-colors"
+              >
+                <input
+                  type="checkbox"
+                  id="check-principle-3"
+                  class="workspace-checkbox mt-1 rounded border-slate-700 text-civic-gold-500 focus:ring-civic-gold-500 bg-slate-900"
+                />
+                <div>
+                  <span class="font-medium text-white text-sm block">Emotional Neutrality</span>
+                  <span class="text-xs text-slate-400"
+                    >Strict presentation with absolutely no sensationalism.</span
+                  >
+                </div>
+              </label>
+            </div>
+          </div>
+        </section>
+
+        <!-- Section 2: Visual Tokens -->
+        <section id="tokens" class="space-y-6 scroll-mt-24">
+          <div class="border-b border-civic-slate-800 pb-4">
+            <span class="text-civic-gold-500 font-mono text-sm tracking-wider uppercase block"
+              >02 / Design Tokens</span
+            >
+            <h3 class="text-3xl font-serif font-bold text-white tracking-tight">
+              Accessible Theme Token Map
+            </h3>
+          </div>
+
+          <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
+            <div
+              class="bg-civic-navy-950 border border-civic-slate-800 p-4 rounded-xl text-center space-y-2"
+            >
+              <div class="w-full h-12 rounded bg-[#1D3557] border border-white/10"></div>
+              <span class="text-xs font-mono text-slate-400">color-liberty-blue</span>
+              <span class="text-xs font-semibold block text-white">#1D3557</span>
+            </div>
+            <div
+              class="bg-civic-navy-950 border border-civic-slate-800 p-4 rounded-xl text-center space-y-2"
+            >
+              <div class="w-full h-12 rounded bg-[#fbbf24] border border-white/10"></div>
+              <span class="text-xs font-mono text-slate-400">color-accent-gold</span>
+              <span class="text-xs font-semibold block text-white">#FBBF24</span>
+            </div>
+            <div
+              class="bg-civic-navy-950 border border-civic-slate-800 p-4 rounded-xl text-center space-y-2"
+            >
+              <div class="w-full h-12 rounded bg-[#E63946] border border-white/10"></div>
+              <span class="text-xs font-mono text-slate-400">color-patriot-crimson</span>
+              <span class="text-xs font-semibold block text-white">#E63946</span>
+            </div>
+            <div
+              class="bg-civic-navy-950 border border-civic-slate-800 p-4 rounded-xl text-center space-y-2"
+            >
+              <div class="w-full h-12 rounded bg-[#F1FAEE] border border-white/10"></div>
+              <span class="text-xs font-mono text-slate-400">color-parchment-warm</span>
+              <span class="text-xs font-semibold block text-white">#F1FAEE</span>
+            </div>
+            <div
+              class="bg-civic-navy-950 border border-civic-slate-800 p-4 rounded-xl text-center space-y-2"
+            >
+              <div class="w-full h-12 rounded bg-[#2B2D42] border border-white/10"></div>
+              <span class="text-xs font-mono text-slate-400">color-deep-charcoal</span>
+              <span class="text-xs font-semibold block text-white">#2B2D42</span>
+            </div>
+            <div
+              class="bg-civic-navy-950 border border-civic-slate-800 p-4 rounded-xl text-center space-y-2"
+            >
+              <div class="w-full h-12 rounded bg-[#457B9D] border border-white/10"></div>
+              <span class="text-xs font-mono text-slate-400">color-celadon-green</span>
+              <span class="text-xs font-semibold block text-white">#457B9D</span>
+            </div>
+          </div>
+
+          <div class="bg-civic-navy-900/10 border border-civic-slate-800 rounded-xl p-6 space-y-4">
+            <div class="flex items-center gap-3">
+              <i data-lucide="text" class="w-5 h-5 text-civic-gold-500"></i>
+              <h4 class="text-lg font-serif font-semibold text-white">Typography Standards</h4>
+            </div>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div class="bg-civic-slate-950 p-4 rounded-lg border border-civic-slate-800/60">
+                <span class="text-xs font-mono text-civic-gold-500">Font Family Editorial</span>
+                <p class="font-serif text-xl font-semibold text-white mt-1">Lora (Serif Accent)</p>
+                <p class="font-serif text-sm text-slate-300 mt-2 italic">
+                  "Evokes the journalistic integrity and stability of democratic archives."
+                </p>
+              </div>
+              <div class="bg-civic-slate-950 p-4 rounded-lg border border-civic-slate-800/60">
+                <span class="text-xs font-mono text-sky-400">Font Family System</span>
+                <p class="font-sans text-xl font-semibold text-white mt-1">Inter (Neo-grotesque)</p>
+                <p class="font-sans text-sm text-slate-300 mt-2">
+                  "Optimized for high-density tabular metadata and interface scannability."
+                </p>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- Section 3: Interactive Sitemap Builder -->
+        <section id="sitemap-builder" class="space-y-6 scroll-mt-24">
+          <div
+            class="border-b border-civic-slate-800 pb-4 flex flex-col md:flex-row md:items-end justify-between gap-4"
+          >
+            <div>
+              <span class="text-civic-gold-500 font-mono text-sm tracking-wider uppercase block"
+                >03 / Information Architecture</span
+              >
+              <h3 class="text-3xl font-serif font-bold text-white tracking-tight">
+                Interactive Sitemap Blueprint
+              </h3>
+            </div>
+            <div class="flex items-center gap-2">
+              <button
+                id="btn-add-sitemap-node"
+                class="flex items-center gap-1.5 px-3 py-1.5 bg-civic-navy-800 hover:bg-civic-navy-500 text-slate-200 hover:text-white border border-civic-slate-800 rounded-lg text-xs transition-all"
+              >
+                <i data-lucide="plus" class="w-3.5 h-3.5"></i> Add Custom Node
+              </button>
+            </div>
+          </div>
+
+          <p class="text-slate-300 text-sm max-w-3xl">
+            Visualizing the proposed feed stream layouts. This hierarchy simplifies 505 complex
+            agency channels into five streamlined "Thematic Hubs" to maximize discoverability.
+            Customise nodes to test prospective policy curation.
+          </p>
+
+          <!-- Sitemap Builder Workspace -->
+          <div class="bg-civic-slate-900/60 border border-civic-slate-800 rounded-xl p-6">
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+              <!-- Left: Tree Editor Controls -->
+              <div
+                class="md:col-span-1 bg-civic-slate-950 border border-civic-slate-800 rounded-lg p-4 space-y-4 max-h-[450px] overflow-y-auto"
+              >
+                <h4
+                  class="text-xs font-semibold uppercase tracking-wider text-slate-400 border-b border-civic-slate-800 pb-2"
+                >
+                  Modify Nodes
+                </h4>
+                <div id="sitemap-editor-list" class="space-y-2">
+                  <!-- Dynamically generated list with edit fields -->
+                </div>
+              </div>
+
+              <!-- Right: Interactive Live Rendering -->
+              <div
+                class="md:col-span-2 bg-civic-slate-950/80 border border-civic-slate-800 rounded-lg p-6 flex flex-col justify-between min-h-[450px]"
+              >
+                <div>
+                  <h4
+                    class="text-xs font-semibold uppercase tracking-wider text-slate-400 border-b border-civic-slate-800 pb-2 mb-4"
+                  >
+                    Live Hierarchy Preview
+                  </h4>
+                  <div id="sitemap-tree-canvas" class="space-y-4">
+                    <!-- Dynamically populated hierarchical tree UI -->
+                  </div>
+                </div>
+                <div
+                  class="text-[11px] text-slate-500 flex items-center gap-1.5 mt-4 pt-4 border-t border-civic-slate-800/60"
+                >
+                  <i data-lucide="info" class="w-3.5 h-3.5"></i> Custom changes are preserved
+                  immediately inside localStorage.
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- Section 4: Key Feature Enhancements -->
+        <section id="features" class="space-y-6 scroll-mt-24">
+          <div class="border-b border-civic-slate-800 pb-4">
+            <span class="text-civic-gold-500 font-mono text-sm tracking-wider uppercase block"
+              >04 / Structural Solutions</span
+            >
+            <h3 class="text-3xl font-serif font-bold text-white tracking-tight">
+              5 Transformative Public-Value Features
+            </h3>
+          </div>
+
+          <div class="space-y-4" id="features-cards-container">
+            <!-- Dynamic card inserts generated by Javascript -->
+          </div>
+        </section>
+
+        <!-- Section 5: Interaction & Motion Design -->
+        <section id="interactions" class="space-y-6 scroll-mt-24">
+          <div class="border-b border-civic-slate-800 pb-4">
+            <span class="text-civic-gold-500 font-mono text-sm tracking-wider uppercase block"
+              >05 / UX Feedback Engine</span
+            >
+            <h3 class="text-3xl font-serif font-bold text-white tracking-tight">
+              Dynamic Interactions & Motion Controls
+            </h3>
+          </div>
+
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div
+              class="bg-civic-slate-900/40 border border-civic-slate-800 rounded-xl p-6 space-y-4"
+            >
+              <h4 class="text-sm font-semibold uppercase tracking-wider text-slate-400">
+                Micro-Interaction Playground
+              </h4>
+              <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <!-- Bookmark Sandbox Button -->
+                <div
+                  class="bg-civic-slate-950 border border-civic-slate-800 p-4 rounded-lg flex flex-col justify-between gap-3"
+                >
+                  <span class="text-xs font-mono text-slate-400">Bookmark Toggle Action</span>
+                  <button
+                    id="playground-bookmark-btn"
+                    class="flex items-center justify-center gap-2 px-3 py-2 border border-slate-700 hover:border-civic-gold-500 rounded text-sm text-slate-200 transition-all font-medium"
+                  >
+                    <i
+                      data-lucide="bookmark"
+                      id="playground-bookmark-icon"
+                      class="w-4 h-4 text-slate-400"
+                    ></i>
+                    <span id="playground-bookmark-txt">Save Proposal Item</span>
+                  </button>
+                </div>
+
+                <!-- Audio Player Equalizer Sandbox -->
+                <div
+                  class="bg-civic-slate-950 border border-civic-slate-800 p-4 rounded-lg flex flex-col justify-between gap-3"
+                >
+                  <span class="text-xs font-mono text-slate-400">Civic Narrator Engine State</span>
+                  <button
+                    id="playground-audio-btn"
+                    class="flex items-center justify-center gap-2 px-3 py-2 bg-civic-sage-500/10 border border-civic-sage-500/30 text-civic-sage-400 hover:bg-civic-sage-500/20 rounded text-sm transition-all font-medium"
+                  >
+                    <span class="flex gap-0.5 items-end h-3" id="audio-visualizer-bars">
+                      <span
+                        class="w-0.5 h-1 bg-civic-sage-400 rounded-full transition-all duration-300"
+                      ></span>
+                      <span
+                        class="w-0.5 h-2 bg-civic-sage-400 rounded-full transition-all duration-300"
+                      ></span>
+                      <span
+                        class="w-0.5 h-1 bg-civic-sage-400 rounded-full transition-all duration-300"
+                      ></span>
+                    </span>
+                    <span id="playground-audio-txt">Listen to Summary</span>
+                  </button>
+                </div>
+              </div>
+              <div
+                class="bg-civic-slate-950/40 p-3 rounded-lg border border-civic-slate-800/60 text-xs text-slate-400 leading-relaxed"
+              >
+                <strong>Interactive Feedback:</strong> Click either button to experience spring
+                transitions, fluid opacity shifts, and hardware-accelerated icon pulses.
+              </div>
+            </div>
+
+            <div
+              class="bg-civic-slate-900/40 border border-civic-slate-800 rounded-xl p-6 space-y-4"
+            >
+              <h4 class="text-sm font-semibold uppercase tracking-wider text-slate-400">
+                Skeleton Screen Simulation
+              </h4>
+              <div class="space-y-3">
+                <div class="h-4 w-1/3 skeleton-shimmer rounded bg-civic-slate-800"></div>
+                <div class="h-10 w-full skeleton-shimmer rounded bg-civic-slate-800"></div>
+                <div class="h-16 w-full skeleton-shimmer rounded bg-civic-slate-800"></div>
+              </div>
+              <p class="text-xs text-slate-400 leading-relaxed">
+                Traditional loading spinners indicate systemic delay and increase user anxiety. We
+                implement looping linear-gradient skeleton screen overlays to present a faster
+                perceived application load speed.
+              </p>
+            </div>
+          </div>
+        </section>
+
+        <!-- Section 6: WCAG Contrast Tool -->
+        <section id="contrast-tool" class="space-y-6 scroll-mt-24">
+          <div class="border-b border-civic-slate-800 pb-4">
+            <span class="text-civic-gold-500 font-mono text-sm tracking-wider uppercase block"
+              >06 / Accessibility Assurance</span
+            >
+            <h3 class="text-3xl font-serif font-bold text-white tracking-tight">
+              Visual WCAG Color Contrast Evaluator
+            </h3>
+          </div>
+
+          <p class="text-slate-300 text-sm max-w-3xl">
+            Federal platforms must be fully readable by citizens with different visual ranges. This
+            interactive tool evaluates contrast compliance metrics under WCAG 2.1 AA (4.5:1 target)
+            and AAA (7:1 target) specifications dynamically in real-time.
+          </p>
+
+          <div class="bg-civic-slate-900/60 border border-civic-slate-800 rounded-xl p-6">
+            <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+              <!-- Selector Columns -->
+              <div class="space-y-4">
+                <div>
+                  <label
+                    class="block text-xs font-semibold text-slate-400 uppercase tracking-wider mb-2"
+                    >Background Color</label
+                  >
+                  <select
+                    id="contrast-bg-select"
+                    class="w-full bg-civic-slate-950 border border-civic-slate-800 rounded-lg p-2.5 text-sm text-white focus:outline-none focus:border-civic-gold-500"
+                  >
+                    <!-- Generated options -->
+                  </select>
+                </div>
+                <div>
+                  <label
+                    class="block text-xs font-semibold text-slate-400 uppercase tracking-wider mb-2"
+                    >Foreground Text Color</label
+                  >
+                  <select
+                    id="contrast-fg-select"
+                    class="w-full bg-civic-slate-950 border border-civic-slate-800 rounded-lg p-2.5 text-sm text-white focus:outline-none focus:border-civic-gold-500"
+                  >
+                    <!-- Generated options -->
+                  </select>
+                </div>
+              </div>
+
+              <!-- Card Showcase View -->
+              <div
+                class="lg:col-span-2 border border-civic-slate-800 rounded-xl p-6 flex flex-col justify-between"
+                id="contrast-showcase-card"
+              >
+                <div>
+                  <div class="flex items-center justify-between border-b border-white/10 pb-3 mb-4">
+                    <span
+                      class="text-xs uppercase tracking-wider font-mono opacity-80"
+                      id="contrast-palette-label"
+                      >Custom Contrast Mix</span
+                    >
+                    <div class="flex items-center gap-1.5 font-mono text-sm">
+                      <span>Ratio:</span>
+                      <strong id="contrast-ratio-val" class="font-bold">0.00:1</strong>
+                    </div>
+                  </div>
+
+                  <div id="contrast-sample-text-block" class="rounded-lg p-4 transition-all mb-4">
+                    <h4 class="font-serif text-lg font-semibold mb-1">
+                      Standard Federal Bulletin Heading
+                    </h4>
+                    <p class="text-sm">
+                      According to section 4B of the agency decree, updates surrounding regional
+                      ecological systems take immediate operational precedence.
+                    </p>
+                  </div>
+                </div>
+
+                <!-- Real-time Validation Tags -->
+                <div class="grid grid-cols-2 md:grid-cols-4 gap-3 pt-3 border-t border-white/10">
+                  <div class="bg-black/25 p-2 rounded text-center border border-white/5">
+                    <span class="text-[10px] text-slate-400 block uppercase font-mono"
+                      >Normal (AA)</span
+                    >
+                    <span id="tag-normal-aa" class="text-xs font-bold font-sans">Checking...</span>
+                  </div>
+                  <div class="bg-black/25 p-2 rounded text-center border border-white/5">
+                    <span class="text-[10px] text-slate-400 block uppercase font-mono"
+                      >Normal (AAA)</span
+                    >
+                    <span id="tag-normal-aaa" class="text-xs font-bold font-sans">Checking...</span>
+                  </div>
+                  <div class="bg-black/25 p-2 rounded text-center border border-white/5">
+                    <span class="text-[10px] text-slate-400 block uppercase font-mono"
+                      >Large (AA)</span
+                    >
+                    <span id="tag-large-aa" class="text-xs font-bold font-sans">Checking...</span>
+                  </div>
+                  <div class="bg-black/25 p-2 rounded text-center border border-white/5">
+                    <span class="text-[10px] text-slate-400 block uppercase font-mono"
+                      >Large (AAA)</span
+                    >
+                    <span id="tag-large-aaa" class="text-xs font-bold font-sans">Checking...</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- Section 7: Tech Stack Strategy -->
+        <section id="tech-stack" class="space-y-6 scroll-mt-24">
+          <div class="border-b border-civic-slate-800 pb-4">
+            <span class="text-civic-gold-500 font-mono text-sm tracking-wider uppercase block"
+              >07 / Engineering Foundations</span
+            >
+            <h3 class="text-3xl font-serif font-bold text-white tracking-tight">
+              React Framework & Frontend Architecture
+            </h3>
+          </div>
+
+          <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+            <div
+              class="bg-civic-navy-900/10 border border-civic-slate-800 rounded-xl p-5 space-y-3"
+            >
+              <span
+                class="p-2 bg-sky-500/10 border border-sky-500/20 text-sky-400 rounded-lg inline-block"
+              >
+                <i data-lucide="blocks" class="w-5 h-5"></i>
+              </span>
+              <h4 class="text-sm font-semibold uppercase tracking-wider text-slate-300">
+                Radix UI Primitives
+              </h4>
+              <p class="text-xs text-slate-400 leading-relaxed">
+                Provides fully accessible, headless structural templates (Focus-trapping dialogs,
+                keyboard-friendly navigation trees) directly mapped under strict Web Accessibility
+                standards.
+              </p>
+            </div>
+            <div
+              class="bg-civic-navy-900/10 border border-civic-slate-800 rounded-xl p-5 space-y-3"
+            >
+              <span
+                class="p-2 bg-civic-sage-500/10 border border-civic-sage-500/20 text-civic-sage-400 rounded-lg inline-block"
+              >
+                <i data-lucide="database" class="w-5 h-5"></i>
+              </span>
+              <h4 class="text-sm font-semibold uppercase tracking-wider text-slate-300">
+                Zustand & TanStack Query
+              </h4>
+              <p class="text-xs text-slate-400 leading-relaxed">
+                Manages offline-ready client states, auto-saved settings, and dynamic local client
+                query caching to ensure rapid load-times across weak connectivity networks.
+              </p>
+            </div>
+            <div
+              class="bg-civic-navy-900/10 border border-civic-slate-800 rounded-xl p-5 space-y-3"
+            >
+              <span
+                class="p-2 bg-amber-500/10 border border-amber-500/20 text-amber-500 rounded-lg inline-block"
+              >
+                <i data-lucide="wind" class="w-5 h-5"></i>
+              </span>
+              <h4 class="text-sm font-semibold uppercase tracking-wider text-slate-300">
+                Tailwind CSS Tokens
+              </h4>
+              <p class="text-xs text-slate-400 leading-relaxed">
+                Locks structural dimensions down to a clean mathematical spacing scale, maintaining
+                semantic visual hierarchies throughout the interface layout.
+              </p>
+            </div>
+          </div>
+
+          <!-- Dependencies JSON View -->
+          <div class="bg-civic-slate-900/60 border border-civic-slate-800 rounded-xl p-6 space-y-4">
+            <div class="flex items-center justify-between border-b border-civic-slate-800 pb-3">
+              <span class="text-xs font-semibold uppercase tracking-wider text-slate-400"
+                >package.json Setup Blueprint</span
+              >
+              <span class="text-xs font-mono text-emerald-500"
+                >Production Dependency Configuration</span
+              >
+            </div>
+            <pre
+              class="bg-civic-slate-950 p-4 rounded-lg text-xs text-slate-300 font-mono overflow-x-auto leading-relaxed border border-civic-slate-800/80"
+            >
+{
+  <span class="text-civic-gold-400">"name"</span>: <span class="text-emerald-400">"civic-clarity-portal"</span>,
+  <span class="text-civic-gold-400">"version"</span>: <span class="text-emerald-400">"1.0.0"</span>,
+  <span class="text-civic-gold-400">"dependencies"</span>: {
+    <span class="text-sky-400">"react"</span>: <span class="text-emerald-400">"^19.0.0"</span>,
+    <span class="text-sky-400">"tailwindcss"</span>: <span class="text-emerald-400">"^3.4.0"</span>,
+    <span class="text-sky-400">"framer-motion"</span>: <span class="text-emerald-400">"^11.0.0"</span>,
+    <span class="text-sky-400">"@radix-ui/react-dialog"</span>: <span class="text-emerald-400">"^1.0.5"</span>,
+    <span class="text-sky-400">"lucide-react"</span>: <span class="text-emerald-400">"^0.300.0"</span>,
+    <span class="text-sky-400">"zustand"</span>: <span class="text-emerald-400">"^4.5.0"</span>,
+    <span class="text-sky-400">"@tanstack/react-query"</span>: <span class="text-emerald-400">"^5.15.0"</span>
+  }
+}</pre>
+          </div>
+        </section>
+
+        <!-- Section 8: Interactive Gantt Roadmap -->
+        <section id="roadmap" class="space-y-6 scroll-mt-24">
+          <div class="border-b border-civic-slate-800 pb-4">
+            <span class="text-civic-gold-500 font-mono text-sm tracking-wider uppercase block"
+              >08 / Strategic Execution</span
+            >
+            <h3 class="text-3xl font-serif font-bold text-white tracking-tight">
+              Interactive Gantt Release Roadmap
+            </h3>
+          </div>
+
+          <p class="text-slate-300 text-sm max-w-3xl">
+            An interactive timeline structure mapping out the proposed 14-week launch lifecycle.
+            Modify milestone timelines, update duration blocks, or assign task owners with immediate
+            visual timeline updates.
+          </p>
+
+          <!-- Gantt Interface Container -->
+          <div
+            class="bg-civic-slate-900/60 border border-civic-slate-800 rounded-xl p-6 space-y-6 overflow-x-auto"
+          >
+            <!-- Edit Form Controls -->
+            <div
+              class="bg-civic-slate-950 border border-civic-slate-800 rounded-lg p-4 flex flex-wrap gap-4 items-end"
+            >
+              <div class="flex-1 min-w-[150px]">
+                <label class="block text-[11px] font-semibold text-slate-400 uppercase mb-1"
+                  >Select Milestone</label
+                >
+                <select
+                  id="gantt-select-milestone"
+                  class="w-full bg-civic-slate-900 border border-civic-slate-800 rounded p-2 text-xs text-white focus:outline-none focus:border-civic-gold-500"
+                >
+                  <!-- Milestones populated dynamically -->
+                </select>
+              </div>
+              <div class="w-24">
+                <label class="block text-[11px] font-semibold text-slate-400 uppercase mb-1"
+                  >Start Week</label
+                >
+                <input
+                  type="number"
+                  id="gantt-start-val"
+                  min="1"
+                  max="14"
+                  class="w-full bg-civic-slate-900 border border-civic-slate-800 rounded p-1.5 text-xs text-white text-center"
+                />
+              </div>
+              <div class="w-24">
+                <label class="block text-[11px] font-semibold text-slate-400 uppercase mb-1"
+                  >Duration (Wks)</label
+                >
+                <input
+                  type="number"
+                  id="gantt-duration-val"
+                  min="1"
+                  max="14"
+                  class="w-full bg-civic-slate-900 border border-civic-slate-800 rounded p-1.5 text-xs text-white text-center"
+                />
+              </div>
+              <div class="flex-1 min-w-[150px]">
+                <label class="block text-[11px] font-semibold text-slate-400 uppercase mb-1"
+                  >Assigned Ownership</label
+                >
+                <input
+                  type="text"
+                  id="gantt-owner-val"
+                  class="w-full bg-civic-slate-900 border border-civic-slate-800 rounded p-1.5 text-xs text-white"
+                />
+              </div>
+              <button
+                id="btn-update-gantt"
+                class="px-4 py-2 bg-civic-gold-500 hover:bg-civic-gold-400 text-civic-slate-950 font-semibold rounded text-xs transition-all active:scale-95"
+              >
+                Update Milestone
+              </button>
+            </div>
+
+            <!-- The Gantt Render Window -->
+            <div class="min-w-[700px] space-y-2">
+              <!-- Timeline Grid Header -->
+              <div
+                class="gantt-row font-mono text-[10px] text-slate-400 border-b border-civic-slate-800/80 pb-2"
+              >
+                <div class="gantt-label-col">Task Milestones</div>
+                <div class="gantt-grid-col grid grid-cols-14 gap-1 text-center">
+                  <span>W1</span><span>W2</span><span>W3</span><span>W4</span><span>W5</span
+                  ><span>W6</span><span>W7</span><span>W8</span><span>W9</span><span>W10</span
+                  ><span>W11</span><span>W12</span><span>W13</span><span>W14</span>
+                </div>
+              </div>
+
+              <!-- Gantt Rows Generated Dynamically -->
+              <div id="gantt-rows-container" class="space-y-4"></div>
+            </div>
+          </div>
+        </section>
+
+        <!-- Section 9: Success Metrics -->
+        <section id="metrics" class="space-y-6 scroll-mt-24">
+          <div class="border-b border-civic-slate-800 pb-4">
+            <span class="text-civic-gold-500 font-mono text-sm tracking-wider uppercase block"
+              >09 / Analytical Targets</span
+            >
+            <h3 class="text-3xl font-serif font-bold text-white tracking-tight">
+              Redesign Post-Launch Success Metrics
+            </h3>
+          </div>
+
+          <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
+            <div
+              class="bg-civic-navy-900/10 border border-civic-slate-800 p-5 rounded-xl text-center space-y-1"
+            >
+              <span class="text-xs uppercase tracking-wider text-slate-400 block font-mono"
+                >Accessibility Score</span
+              >
+              <span class="text-3xl font-bold text-emerald-400 font-serif block">100/100</span>
+              <span class="text-[10px] text-slate-500 font-mono block">Lighthouse Conformance</span>
+            </div>
+            <div
+              class="bg-civic-navy-900/10 border border-civic-slate-800 p-5 rounded-xl text-center space-y-1"
+            >
+              <span class="text-xs uppercase tracking-wider text-slate-400 block font-mono"
+                >Comprehension Rating</span
+              >
+              <span class="text-3xl font-bold text-civic-gold-400 font-serif block">>8.8/10</span>
+              <span class="text-[10px] text-slate-500 font-mono block"
+                >Validated via Surveying</span
+              >
+            </div>
+            <div
+              class="bg-civic-navy-900/10 border border-civic-slate-800 p-5 rounded-xl text-center space-y-1"
+            >
+              <span class="text-xs uppercase tracking-wider text-slate-400 block font-mono"
+                >Engagement Rate</span
+              >
+              <span class="text-3xl font-bold text-sky-400 font-serif block">52%</span>
+              <span class="text-[10px] text-slate-500 font-mono block"
+                >Policy Curation Adoption</span
+              >
+            </div>
+            <div
+              class="bg-civic-navy-900/10 border border-civic-slate-800 p-5 rounded-xl text-center space-y-1"
+            >
+              <span class="text-xs uppercase tracking-wider text-slate-400 block font-mono"
+                >Active Retention</span
+              >
+              <span class="text-3xl font-bold text-purple-400 font-serif block">+40%</span>
+              <span class="text-[10px] text-slate-500 font-mono block">Month-over-Month DARR</span>
+            </div>
+          </div>
+        </section>
+      </main>
+    </div>
+
+    <!-- Footer block -->
+    <footer
+      class="border-t border-civic-slate-800 bg-civic-slate-950 mt-16 py-12 text-center text-xs text-slate-500 space-y-2"
+    >
+      <div class="max-w-7xl mx-auto px-6">
+        <p class="font-serif italic text-slate-400 text-sm mb-4">
+          "Building digital platforms with absolute institutional safety, clarity, and warmth."
+        </p>
+        <p>Civic Clarity Overhaul Blueprint & Strategy Core Hub — 2026 Sandbox Environment</p>
+        <p class="text-[10px] text-slate-600 font-mono">
+          Designed to comply with high contrast accessibility expectations and responsive CSS
+          models.
+        </p>
+      </div>
+    </footer>
+
+    <!-- Application Initialization Scripts -->
+    <script type="module" src="app.js"></script>
+  </body>
+</html>

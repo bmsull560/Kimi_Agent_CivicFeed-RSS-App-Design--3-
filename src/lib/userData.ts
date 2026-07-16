@@ -6,6 +6,9 @@ const CURRENT_VERSION = 1;
 const DEFAULT_PREFERENCES: UserPreferences = {
   defaultView: "list",
   reduceMotion: false,
+  onboardingComplete: false,
+  followedHubs: [],
+  digestFrequency: null,
 };
 
 const DEFAULT_ARTICLE_STATE: ArticleState = {
@@ -65,6 +68,16 @@ function migrateUserData(parsed: Partial<UserData>): UserData {
     preferences: {
       defaultView: parsed.preferences?.defaultView === "grid" ? "grid" : "list",
       reduceMotion: !!parsed.preferences?.reduceMotion,
+      onboardingComplete: !!parsed.preferences?.onboardingComplete,
+      followedHubs: Array.isArray(parsed.preferences?.followedHubs)
+        ? parsed.preferences.followedHubs.filter((h): h is string => typeof h === "string")
+        : base.preferences.followedHubs,
+      digestFrequency:
+        parsed.preferences?.digestFrequency === "realtime" ||
+        parsed.preferences?.digestFrequency === "daily" ||
+        parsed.preferences?.digestFrequency === "weekly"
+          ? parsed.preferences.digestFrequency
+          : base.preferences.digestFrequency,
     },
   };
 }

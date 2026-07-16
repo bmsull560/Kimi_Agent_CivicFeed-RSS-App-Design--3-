@@ -144,7 +144,10 @@ test("mobile layout exposes the directory and navigates to detail", async ({ pag
   await page.goto("/");
   await expect(page.getByRole("heading", { name: "U.S. Government RSS Feeds" })).toBeVisible();
   await page.getByRole("button", { name: "Toggle menu" }).click();
-  await page.getByRole("button", { name: /All Feeds/i }).click();
+  await page
+    .getByRole("navigation", { name: "Feed categories" })
+    .getByRole("button", { name: "All Feeds" })
+    .click();
 
   await expect(page).toHaveURL(/\/feeds$/);
   await page
