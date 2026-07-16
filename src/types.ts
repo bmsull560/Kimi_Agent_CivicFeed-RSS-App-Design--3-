@@ -37,6 +37,9 @@ export interface ArticleState {
 export interface UserPreferences {
   defaultView: "list" | "grid";
   reduceMotion: boolean;
+  onboardingComplete?: boolean;
+  followedHubs?: string[];
+  digestFrequency?: "realtime" | "daily" | "weekly" | null;
 }
 
 export interface UserData {

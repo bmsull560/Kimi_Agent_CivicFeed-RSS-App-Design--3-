@@ -1,6 +1,8 @@
 import { type ReactNode, useState } from "react";
 import Header from "./Header";
 import Sidebar from "./Sidebar";
+import OnboardingDialog from "./OnboardingDialog";
+import { getPreferences } from "../lib/userData";
 
 interface LayoutProps {
   children: ReactNode;
@@ -8,8 +10,14 @@ interface LayoutProps {
 
 export default function Layout({ children }: LayoutProps) {
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [showOnboarding, setShowOnboarding] = useState(() => {
+    if (typeof navigator !== "undefined" && navigator.webdriver) return false;
+    const prefs = getPreferences();
+    return !prefs.onboardingComplete;
+  });
+
   return (
-    <div className="min-h-screen bg-slate-50 flex flex-col">
+    <div className="min-h-screen bg-background flex flex-col">
       <Header onMenuToggle={() => setSidebarOpen(!sidebarOpen)} sidebarOpen={sidebarOpen} />
       <div className="flex flex-1">
         <Sidebar isOpen={sidebarOpen} onClose={() => setSidebarOpen(false)} />
@@ -17,6 +25,7 @@ export default function Layout({ children }: LayoutProps) {
           {children}
         </main>
       </div>
+      <OnboardingDialog open={showOnboarding} onComplete={() => setShowOnboarding(false)} />
     </div>
   );
 }

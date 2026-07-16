@@ -8,13 +8,13 @@ interface A11yPage {
 }
 
 const pages: A11yPage[] = [
-  { path: "/#/", name: "Dashboard" },
-  { path: "/#/feeds?q=ITA+News", name: "Feed Directory" },
-  { path: "/#/reading", name: "Reading Stream" },
-  { path: "/#/bookmarks", name: "Bookmarks" },
-  { path: "/#/archive", name: "Archive" },
-  { path: "/#/search", name: "Search" },
-  { path: "/#/recap", name: "Recap" },
+  { path: "/", name: "Dashboard" },
+  { path: "/feeds?q=ITA+News", name: "Feed Directory" },
+  { path: "/reading", name: "Reading Stream" },
+  { path: "/bookmarks", name: "Bookmarks" },
+  { path: "/archive", name: "Archive" },
+  { path: "/search", name: "Search" },
+  { path: "/recap", name: "Recap" },
 ];
 
 function makeCatalog() {

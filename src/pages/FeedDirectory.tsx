@@ -14,6 +14,7 @@ import { generateOpml, parseOpml, parsedOpmlToUserFeeds } from "../lib/opml";
 import { fetchFeedStats } from "../lib/rss";
 import EmptyState from "../components/EmptyState";
 import FeedFormDialog from "../components/FeedFormDialog";
+import { thematicHubs } from "../lib/hubs";
 import type { Feed, UserFeed, FeedStats } from "../types";
 import {
   DropdownMenu,
@@ -43,6 +44,7 @@ export default function FeedDirectory() {
   const [searchParams, setSearchParams] = useSearchParams();
   const navigate = useNavigate();
   const categoryParam = searchParams.get("category") || "";
+  const hubParam = searchParams.get("hub") || "";
   const qParam = searchParams.get("q") || "";
   const priorityParam = searchParams.get("priority");
   const priorityFilter = priorityParam ? parseInt(priorityParam, 10) : null;
@@ -65,10 +67,14 @@ export default function FeedDirectory() {
     void fetchFeedStats().then(setFeedStats);
   }, []);
 
+  const activeHub = useMemo(() => thematicHubs.find((h) => h.key === hubParam) || null, [hubParam]);
+
   const filteredFeeds = useMemo(() => {
     let result = categoryParam
       ? allFeeds.filter((f) => f.category === categoryParam)
-      : [...allFeeds];
+      : activeHub
+        ? allFeeds.filter((f) => activeHub.categories.includes(f.category))
+        : [...allFeeds];
     if (qParam) {
       const lower = qParam.toLowerCase();
       result = result.filter(
@@ -83,7 +89,7 @@ export default function FeedDirectory() {
       result = result.filter((f) => f.priority === priorityFilter);
     }
     return result;
-  }, [allFeeds, categoryParam, qParam, priorityFilter]);
+  }, [allFeeds, categoryParam, activeHub, qParam, priorityFilter]);
 
   const handleSearch = () => {
     const p = new URLSearchParams(searchParams);
@@ -102,6 +108,11 @@ export default function FeedDirectory() {
     p.delete("category");
     setSearchParams(p);
   };
+  const clearHub = () => {
+    const p = new URLSearchParams(searchParams);
+    p.delete("hub");
+    setSearchParams(p);
+  };
   const clearPriority = () => {
     const p = new URLSearchParams(searchParams);
     p.delete("priority");
@@ -110,11 +121,13 @@ export default function FeedDirectory() {
 
   const pageTitle = priorityFilter
     ? `Tier ${priorityFilter} Priority Feeds`
-    : categoryParam
-      ? categoryParam
-      : qParam
-        ? `Search: "${qParam}"`
-        : "All Feeds";
+    : activeHub
+      ? activeHub.label
+      : categoryParam
+        ? categoryParam
+        : qParam
+          ? `Search: "${qParam}"`
+          : "All Feeds";
 
   const handleExportOpml = () => {
     const xml = generateOpml(enabledFeeds);
@@ -161,6 +174,15 @@ export default function FeedDirectory() {
           <h1 className="text-xl font-bold text-slate-900">{pageTitle}</h1>
           <p className="text-sm text-slate-500">
             {filteredFeeds.length} feed{filteredFeeds.length !== 1 ? "s" : ""}
+            {activeHub && (
+              <button
+                onClick={clearHub}
+                className="ml-2 text-blue-600 hover:underline text-xs"
+                type="button"
+              >
+                Clear hub
+              </button>
+            )}
             {categoryParam && (
               <button
                 onClick={clearCategory}
@@ -261,6 +283,7 @@ export default function FeedDirectory() {
             label: "Clear Filters",
             onClick: () => {
               clearSearch();
+              clearHub();
               clearCategory();
               clearPriority();
             },

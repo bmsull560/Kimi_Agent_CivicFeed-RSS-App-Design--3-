@@ -15,7 +15,7 @@ async function collectRuntimeErrors(page: Page) {
 test("live backend: user can open a feed and read entries from the backend", async ({ page }) => {
   const runtimeErrors = await collectRuntimeErrors(page);
 
-  await page.goto("/#/feeds");
+  await page.goto("/feeds");
   await page.waitForResponse((res) => res.url().includes("/api/feeds") && res.status() === 200);
   await page
     .getByRole("button", { name: /Live Test/i })
@@ -31,7 +31,7 @@ test("live backend: user can open a feed and read entries from the backend", asy
 test("live backend: search finds cached backend articles", async ({ page }) => {
   const runtimeErrors = await collectRuntimeErrors(page);
 
-  await page.goto("/#/search?q=Second");
+  await page.goto("/search?q=Second");
   await expect(page.getByText("Second Live Test Entry")).toBeVisible();
 
   expect(runtimeErrors).toEqual([]);

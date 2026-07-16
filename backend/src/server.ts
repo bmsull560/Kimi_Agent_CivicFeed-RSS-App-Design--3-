@@ -302,11 +302,12 @@ app.get("/api/feeds/:id/articles", async (req, res) => {
 app.get("/api/search", (req, res) => {
   const q = (req.query.q as string) || "";
   const limit = Math.min(parseInt(req.query.limit as string) || 20, 100);
+  const offset = Math.max(parseInt(req.query.offset as string) || 0, 0);
   if (!q.trim()) {
-    const recent = getRecentArticles(limit);
+    const recent = getRecentArticles(limit, offset);
     return res.json({ query: "", results: recent, total: recent.length });
   }
-  const results = searchArticles(q, limit);
+  const results = searchArticles(q, limit, offset);
   res.json({ query: q, results, total: results.length });
 });
 
@@ -314,7 +315,8 @@ app.get("/api/search", (req, res) => {
 app.get("/api/articles/recent", (req, res) => {
   const source = (req.query.source as string) || "";
   const limit = Math.min(parseInt(req.query.limit as string) || 50, 200);
-  let results = getRecentArticles(limit);
+  const offset = Math.max(parseInt(req.query.offset as string) || 0, 0);
+  let results = getRecentArticles(limit, offset);
   if (source) {
     results = results.filter((r) => r.feedId === source);
   }
