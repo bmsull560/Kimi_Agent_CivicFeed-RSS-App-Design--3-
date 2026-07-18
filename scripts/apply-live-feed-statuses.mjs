@@ -1,67 +1,20 @@
-import fs from "node:fs";
+import { spawnSync } from "node:child_process";
 import path from "node:path";
+import { fileURLToPath } from "node:url";
 
-const root = process.cwd();
-const resultPath = process.argv[2] ?? path.join("artifacts", "live-feed-validation.json");
-const absoluteResultPath = path.resolve(root, resultPath);
-const feedsPath = path.join(root, "backend", "src", "feeds.ts");
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
+const root = path.join(__dirname, "..");
+const tsx = path.join(root, "backend", "node_modules", ".bin", "tsx");
+const cli = path.join(root, "backend", "src", "apply-feed-statuses-cli.ts");
 
-if (!fs.existsSync(absoluteResultPath)) {
-  console.error(`Validation result not found: ${path.relative(root, absoluteResultPath)}`);
-  process.exit(1);
-}
-
-const validation = JSON.parse(fs.readFileSync(absoluteResultPath, "utf8"));
-const results = Array.isArray(validation.results) ? validation.results : [];
-const statusesById = new Map();
-const discoveredUrlsById = new Map();
-
-for (const result of results) {
-  if (!result?.id || !["working", "blocked"].includes(result.status)) continue;
-  statusesById.set(result.id, result.status);
-  if (
-    result.status === "working" &&
-    result.discoveredUrl &&
-    result.discoveredUrl !== result.rssUrl
-  ) {
-    discoveredUrlsById.set(result.id, result.discoveredUrl);
-  }
-}
-
-if (statusesById.size === 0) {
-  console.error("No applicable validation statuses found.");
-  process.exit(1);
-}
-
-let source = fs.readFileSync(feedsPath, "utf8");
-let changed = 0;
-
-source = source.replace(/\{id:"(feed-\d{3})"[\s\S]*?\},/g, (feedLiteral, id) => {
-  const nextStatus = statusesById.get(id);
-  if (!nextStatus) return feedLiteral;
-  let updated = feedLiteral.replace(
-    /status:"(?:working|blocked|unverified)" as const/,
-    `status:"${nextStatus}" as const`
-  );
-  const discoveredUrl = discoveredUrlsById.get(id);
-  if (discoveredUrl) {
-    updated = updated.replace(/rssUrl:"[^"]+"/, `rssUrl:"${discoveredUrl.replaceAll('"', "%22")}"`);
-  }
-  if (updated !== feedLiteral) changed += 1;
-  return updated;
+const result = spawnSync(tsx, [cli, ...process.argv.slice(2)], {
+  cwd: root,
+  stdio: "inherit",
 });
 
-const statusCounts = { unverified: 0, working: 0, blocked: 0 };
-for (const match of source.matchAll(/status:"(working|blocked|unverified)" as const/g)) {
-  statusCounts[match[1]] += 1;
+if (result.error) {
+  console.error(`Failed to run apply-feed-statuses CLI: ${result.error.message}`);
+  process.exit(1);
 }
 
-source = source.replace(
-  /byStatus: \{ unverified: \d+, working: \d+, blocked: \d+ \}/,
-  `byStatus: { unverified: ${statusCounts.unverified}, working: ${statusCounts.working}, blocked: ${statusCounts.blocked} }`
-);
-
-fs.writeFileSync(feedsPath, source);
-console.log(`Applied ${changed} live validation status update(s).`);
-console.log(`Applied ${discoveredUrlsById.size} discovered feed URL update(s).`);
-console.log(`byStatus: ${JSON.stringify(statusCounts)}`);
+process.exit(result.status ?? 1);
