@@ -17,8 +17,12 @@ if (!fs.existsSync(indexPath)) {
   if (!html.includes('<div id="root"></div>')) fail("dist/index.html is missing the React root");
   if (!html.includes('type="module"')) fail("dist/index.html is missing a module script");
 
-  const assetRefs = [...html.matchAll(/(?:src|href)="\.\/([^"]+)"/g)].map((match) => match[1]);
-  if (assetRefs.length === 0) fail("dist/index.html has no relative asset references");
+  // Accept both relative ("./assets/…") and root-absolute ("/assets/…") references;
+  // vite.config.ts sets base: "/", which BrowserRouter requires for nested routes.
+  const assetRefs = [
+    ...html.matchAll(/(?:src|href)="\.\/([^"]+)"|(?:src|href)="\/(?!\/)([^"]+)"/g),
+  ].map((match) => match[1] ?? match[2]);
+  if (assetRefs.length === 0) fail("dist/index.html has no local asset references");
 
   for (const ref of assetRefs) {
     const assetPath = path.join(distDir, ref);

@@ -61,7 +61,7 @@ globalThis.window = {
 };
 
 const cases = [
-  { route: "/", expected: ["U.S. Government RSS Feeds", "Browse by Category"] },
+  { route: "/", expected: ["U.S. Government RSS Feeds", "Thematic Hubs"] },
   { route: "/feeds", expected: ["All Feeds", "ITA News"] },
   { route: "/feed/feed-001", expected: ["ITA News", "Raw Feed"] },
   { route: "/feed/not-real", expected: ["Feed not found", "Back to Directory"] },
