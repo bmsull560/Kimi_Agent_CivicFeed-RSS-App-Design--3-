@@ -152,7 +152,7 @@ async function addUserFeed(
     discovered ?? [{ href: url, type: "application/rss+xml", title: name }]
   );
 
-  await page.goto("/#/feeds");
+  await page.goto("/feeds");
   await page.getByRole("button", { name: "Add Feed" }).click();
   await page.getByLabel("Name").fill(name);
   await page
@@ -184,7 +184,7 @@ test("first launch shows a useful feed with a clear empty-state fallback", async
   const runtimeErrors = await collectRuntimeErrors(page);
   await mockBackendBasics(page);
 
-  await page.goto("/#/");
+  await page.goto("/");
   await expect(page.getByRole("heading", { name: "U.S. Government RSS Feeds" })).toBeVisible();
   await expect(page.getByRole("button", { name: /Browse All/i })).toBeVisible();
   await expect(page.getByText("No recent entries yet")).toBeVisible();
@@ -224,10 +224,10 @@ test("user adds a valid RSS feed and its articles appear", async ({ page }, test
   await expect(page.getByText("My Test Feed")).toBeVisible();
 
   await page.getByText("My Test Feed").click();
-  await expect(page).toHaveURL(new RegExp(`#\\/feed\\/${feedId}$`));
+  await expect(page).toHaveURL(new RegExp(`\\/feed\\/${feedId}$`));
   await expect(page.getByText("Added Feed Entry")).toBeVisible({ timeout: 20_000 });
 
-  await page.goto("/#/reading");
+  await page.goto("/reading");
   await expect(page.getByText("Added Feed Entry")).toBeVisible({ timeout: 20_000 });
   expect(runtimeErrors).toEqual([]);
 });
@@ -284,7 +284,7 @@ test("user discovers a feed from a website URL", async ({ page }, testInfo) => {
     "discovered-entry"
   );
 
-  await page.goto("/#/feeds");
+  await page.goto("/feeds");
   await page.getByRole("button", { name: "Add Feed" }).click();
   await page.getByLabel("Name").fill("Discovered Test Feed");
   await page
@@ -299,7 +299,7 @@ test("user discovers a feed from a website URL", async ({ page }, testInfo) => {
   await expect(page.getByText("Discovered Test Feed")).toBeVisible();
 
   await page.getByText("Discovered Test Feed").click();
-  await expect(page).toHaveURL(new RegExp(`#\\/feed\\/${discoveredFeedId}$`));
+  await expect(page).toHaveURL(new RegExp(`\\/feed\\/${discoveredFeedId}$`));
   await expect(page.getByText("Discovered Entry")).toBeVisible();
   expect(runtimeErrors).toEqual([]);
 });
@@ -312,7 +312,7 @@ test("invalid or unreachable feed produces an actionable error", async ({ page }
   const badUrl = "https://example.com/bad-feed.xml";
   await mockDiscover(page, badUrl, []);
 
-  await page.goto("/#/feeds");
+  await page.goto("/feeds");
   await page.getByRole("button", { name: "Add Feed" }).click();
   await page.getByLabel("Name").fill("Bad Feed");
   await page.getByPlaceholder("https://example.com/feed.xml or https://example.com").fill(badUrl);
@@ -373,9 +373,9 @@ test("feed detail shows backend fetch diagnostics for a failing feed", async ({
     })
   );
 
-  await page.goto("/#/feeds");
+  await page.goto("/feeds");
   await page.locator("h3").first().click();
-  await expect(page).toHaveURL(/#\/feed\//);
+  await expect(page).toHaveURL(/\/feed\//);
 
   await expect(page.getByText("Fetch diagnostics")).toBeVisible();
   await expect(page.getByText("Recent fetch failures")).toBeVisible();
@@ -389,13 +389,13 @@ test("user filters by source or category", async ({ page }, testInfo) => {
   const runtimeErrors = await collectRuntimeErrors(page);
   await mockBackendBasics(page);
 
-  await page.goto("/#/feeds");
+  await page.goto("/feeds");
   await page.getByPlaceholder("Search...").fill("ITA News");
   await page.keyboard.press("Enter");
-  await expect(page).toHaveURL(/#\/feeds\?q=ITA/);
+  await expect(page).toHaveURL(/\/feeds\?q=ITA/);
   await expect(page.locator("h3").filter({ hasText: "ITA News" }).first()).toBeVisible();
 
-  await page.goto("/#/feeds?category=Commerce%20%26%20Trade");
+  await page.goto("/feeds?category=Commerce%20%26%20Trade");
   await expect(page.getByRole("heading", { name: "Commerce & Trade" })).toBeVisible();
   expect(runtimeErrors).toEqual([]);
 });
@@ -428,7 +428,7 @@ test("user searches for an article", async ({ page }, testInfo) => {
     })
   );
 
-  await page.goto("/#/search?q=Searchable");
+  await page.goto("/search?q=Searchable");
   await expect(page.getByText("Searchable Article Title")).toBeVisible();
   expect(runtimeErrors).toEqual([]);
 });
@@ -446,7 +446,7 @@ test("search shows an error when the backend is unavailable", async ({ page }, t
     })
   );
 
-  await page.goto("/#/search?q=Searchable");
+  await page.goto("/search?q=Searchable");
   await expect(page.getByText("No articles found")).toBeVisible();
   await expect(page.getByText("Search unavailable. Is the backend running?").last()).toBeVisible();
   expect(runtimeErrors).toEqual([]);
@@ -478,12 +478,14 @@ test("user bookmarks and marks an article as read", async ({ page }, testInfo) =
     })
   );
 
-  await page.goto("/#/reading");
+  await page.goto("/reading");
   await page.getByRole("article").getByRole("button", { name: "Bookmark" }).click();
   await page.getByRole("article").getByRole("button", { name: "Mark read" }).click();
 
   await expect(page.getByRole("button", { name: "Remove bookmark" })).toBeVisible();
-  await expect(page.locator("article").getByText("Read")).toBeVisible();
+  await expect(
+    page.getByRole("article").getByRole("button", { name: "Mark unread" })
+  ).toBeVisible();
   expect(runtimeErrors).toEqual([]);
 });
 
@@ -513,7 +515,7 @@ test("state persists after reload", async ({ page }, testInfo) => {
     })
   );
 
-  await page.goto("/#/reading");
+  await page.goto("/reading");
   await page.getByRole("article").getByRole("button", { name: "Bookmark" }).click();
   await page.reload();
   await expect(page.getByRole("button", { name: "Remove bookmark" })).toBeVisible();
@@ -571,7 +573,7 @@ test("user imports and exports OPML", async ({ page }, testInfo) => {
   const importedFeedId = stableFeedId(importedUrl);
   await mockFeedArticles(page, importedFeedId, "Imported Feed", "Imported Entry", "imported-entry");
 
-  await page.goto("/#/feeds");
+  await page.goto("/feeds");
 
   const fileChooserPromise = page.waitForEvent("filechooser");
   await page.getByRole("button", { name: "Import" }).click();
@@ -599,21 +601,27 @@ test("user imports and exports OPML", async ({ page }, testInfo) => {
 test("core navigation works at mobile and desktop widths", async ({ page }, testInfo) => {
   test.skip(testInfo.project.name !== "mobile-chromium", "mobile-only path");
   const runtimeErrors = await collectRuntimeErrors(page);
-  await page.goto("/#/");
+  await page.goto("/");
   await expect(page.getByRole("heading", { name: "U.S. Government RSS Feeds" })).toBeVisible();
   await page.getByRole("button", { name: "Toggle menu" }).click();
-  await page.getByRole("button", { name: /Reading Stream/i }).click();
-  await expect(page).toHaveURL(/#\/reading$/);
+  await page
+    .getByRole("navigation", { name: "Feed categories" })
+    .getByRole("button", { name: "Reading Stream" })
+    .click();
+  await expect(page).toHaveURL(/\/reading$/);
   await page.getByRole("button", { name: "Toggle menu" }).click();
-  await page.getByRole("button", { name: /Bookmarks/i }).click();
-  await expect(page).toHaveURL(/#\/bookmarks$/);
+  await page
+    .getByRole("navigation", { name: "Feed categories" })
+    .getByRole("button", { name: "Bookmarks" })
+    .click();
+  await expect(page).toHaveURL(/\/bookmarks$/);
   expect(runtimeErrors).toEqual([]);
 });
 
 test("keyboard-only interaction completes the principal workflow", async ({ page }, testInfo) => {
   test.skip(testInfo.project.name.includes("mobile"), "desktop-only path");
   const runtimeErrors = await collectRuntimeErrors(page);
-  await page.goto("/#/");
+  await page.goto("/");
 
   let focusedText = "";
   let reached = false;
@@ -630,7 +638,7 @@ test("keyboard-only interaction completes the principal workflow", async ({ page
   }
   expect(reached).toBe(true);
   await page.keyboard.press("Enter");
-  await expect(page).toHaveURL(/#\/feeds$/);
+  await expect(page).toHaveURL(/\/feeds$/);
   expect(runtimeErrors).toEqual([]);
 });
 
@@ -651,7 +659,7 @@ test("feed-provided unsafe markup is not executed", async ({ page }, testInfo) =
   });
   expect(executed).toBe(false);
 
-  await page.goto("/#/feeds");
+  await page.goto("/feeds");
   await page.getByRole("button", { name: "Add Feed" }).click();
   await page.getByLabel("Name").fill("Unsafe Feed");
   await page
@@ -661,7 +669,7 @@ test("feed-provided unsafe markup is not executed", async ({ page }, testInfo) =
 
   await expect(page.getByText("Unsafe Feed")).toBeVisible({ timeout: 20_000 });
   await page.getByText("Unsafe Feed").click();
-  await expect(page).toHaveURL(new RegExp(`#\\/feed\\/${unsafeFeedId}$`));
+  await expect(page).toHaveURL(new RegExp(`\\/feed\\/${unsafeFeedId}$`));
 
   const stillNotExecuted = await page.evaluate(() => {
     return (window as Record<string, unknown>).__UNSAFE_SCRIPT_EXECUTED__ === true;
@@ -685,7 +693,7 @@ test("weekly recap shows a graceful empty state when backend is unavailable", as
     })
   );
 
-  await page.goto("/#/recap");
+  await page.goto("/recap");
   await expect(page.getByText(/Weekly Recap requires the backend/i)).toBeVisible();
   await expect(page.getByRole("button", { name: "Browse Feeds" })).toBeVisible();
   expect(runtimeErrors).toEqual([]);

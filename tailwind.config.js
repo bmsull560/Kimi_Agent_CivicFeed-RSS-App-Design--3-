@@ -4,12 +4,35 @@ module.exports = {
   content: ["./index.html", "./src/**/*.{js,ts,jsx,tsx}"],
   theme: {
     extend: {
+      fontFamily: {
+        sans: [
+          "Inter",
+          "system-ui",
+          "-apple-system",
+          "BlinkMacSystemFont",
+          "Segoe UI",
+          "sans-serif",
+        ],
+        serif: ["Merriweather", "Georgia", "Cambria", "Times New Roman", "serif"],
+      },
       colors: {
         border: "hsl(var(--border))",
         input: "hsl(var(--input))",
         ring: "hsl(var(--ring))",
         background: "hsl(var(--background))",
         foreground: "hsl(var(--foreground))",
+        civic: {
+          ink: "#0F172A",
+          blue: "#2563EB",
+          emerald: "#059669",
+          amber: "#D97706",
+          paper: "#FFFFFF",
+          canvas: "#F8FAFC",
+          "dark-canvas": "#020617",
+          "dark-card": "#0F172A",
+          "dark-ink": "#F1F5F9",
+          border: "rgba(226, 232, 240, 0.8)",
+        },
         primary: {
           DEFAULT: "hsl(var(--primary))",
           foreground: "hsl(var(--primary-foreground))",

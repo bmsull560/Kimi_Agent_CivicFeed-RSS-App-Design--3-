@@ -1245,7 +1245,7 @@ export const feeds: Feed[] = [
     name: "Space Weather Alerts",
     shortName: "Space Weather Alerts",
     agency: "NOAA Space Weather Prediction Center",
-    description: "Space Weather",
+    description: "Space Weather (deprecated: feed endpoint no longer publishes RSS)",
     rssUrl: "https://www.swpc.noaa.gov/rss.xml",
     website: "https://www.swpc.noaa.gov",
     department: "",
@@ -1253,7 +1253,7 @@ export const feeds: Feed[] = [
     subCategory: "space-weather",
     contentType: "Space Weather",
     updateFrequency: "",
-    status: "working" as const,
+    status: "blocked" as const,
     tags: ["space-weather"],
   },
   {
@@ -2277,7 +2277,8 @@ export const feeds: Feed[] = [
     name: "Department of Health and Human Service/Office of Inspector General",
     shortName: "Department of Health and Human Service/Office of I",
     agency: "Department of Health and Human Service/Office of Inspector General",
-    description: "Department of Health and Human Service/Office of Inspector General",
+    description:
+      "Department of Health and Human Service/Office of Inspector General (deprecated: RSS feed no longer available)",
     rssUrl: "https://www.oig.hhs.gov/hhs-oig.xml",
     website: "https://www.oig.hhs.gov/newsroom/podcasts/index.asp",
     department: "",
@@ -2285,7 +2286,7 @@ export const feeds: Feed[] = [
     subCategory: "Health & Science",
     contentType: "Department of Health and Human Service/Office of Inspector General",
     updateFrequency: "",
-    status: "working" as const,
+    status: "blocked" as const,
     tags: ["health & science"],
   },
   {
@@ -2537,7 +2538,8 @@ export const feeds: Feed[] = [
     name: "DOD Network Information Center / Tricare",
     shortName: "DOD Network Information Center / Tricare",
     agency: "DOD Network Information Center / Tricare",
-    description: "DOD Network Information Center / Tricare",
+    description:
+      "DOD Network Information Center / Tricare (temporarily unavailable: connection times out)",
     rssUrl: "https://www.tricare.mil/rss/BenefitUpdatesFeed",
     website: "https://www.tricare.mil/About/RSSFeeds",
     department: "",
@@ -2545,7 +2547,7 @@ export const feeds: Feed[] = [
     subCategory: "Defense & Security",
     contentType: "DOD Network Information Center / Tricare",
     updateFrequency: "",
-    status: "working" as const,
+    status: "blocked" as const,
     tags: ["defense & security"],
   },
   {
@@ -2569,7 +2571,8 @@ export const feeds: Feed[] = [
     name: "FBI Criminal Justice Information Systems",
     shortName: "FBI Criminal Justice Information Systems",
     agency: "FBI Criminal Justice Information Systems",
-    description: "FBI Criminal Justice Information Systems",
+    description:
+      "FBI Criminal Justice Information Systems (access restricted: Cloudflare/Akamai challenge)",
     rssUrl: "https://www.fbi.gov/feeds/fbi-in-the-news/rss.xml",
     website: "https://www.fbi.gov/feeds",
     department: "",
@@ -2577,7 +2580,7 @@ export const feeds: Feed[] = [
     subCategory: "Courts & Judiciary",
     contentType: "FBI Criminal Justice Information Systems",
     updateFrequency: "",
-    status: "working" as const,
+    status: "blocked" as const,
     tags: ["courts & judiciary"],
   },
   {
@@ -2585,7 +2588,7 @@ export const feeds: Feed[] = [
     name: "FTS FBI Data Services",
     shortName: "FTS FBI Data Services",
     agency: "FTS FBI Data Services",
-    description: "FTS FBI Data Services",
+    description: "FTS FBI Data Services (access restricted: Cloudflare/Akamai challenge)",
     rssUrl: "https://www.fbi.gov/feeds/fbi-in-the-news/rss.xml",
     website: "https://www.fbi.gov/feeds",
     department: "",
@@ -2593,7 +2596,7 @@ export const feeds: Feed[] = [
     subCategory: "General",
     contentType: "FTS FBI Data Services",
     updateFrequency: "",
-    status: "working" as const,
+    status: "blocked" as const,
     tags: ["general"],
   },
   {
@@ -2697,7 +2700,8 @@ export const feeds: Feed[] = [
     name: "Headquarters USAISC / Headquarters, Department of the Army",
     shortName: "Headquarters USAISC / Headquarters, Department of ",
     agency: "Headquarters USAISC / Headquarters, Department of the Army",
-    description: "Headquarters USAISC / Headquarters, Department of the Army",
+    description:
+      "Headquarters USAISC / Headquarters, Department of the Army (server redirect loop)",
     rssUrl: "https://www.army.mil/rss/static/1.xml",
     website: "https://www.army.mil",
     department: "",
@@ -2705,7 +2709,7 @@ export const feeds: Feed[] = [
     subCategory: "Defense & Security",
     contentType: "Headquarters USAISC / Headquarters, Department of the Army",
     updateFrequency: "",
-    status: "working" as const,
+    status: "blocked" as const,
     tags: ["defense & security"],
   },
   {
@@ -3101,7 +3105,7 @@ export const feeds: Feed[] = [
     name: "National Institutes of Health",
     shortName: "National Institutes of Health",
     agency: "National Institutes of Health",
-    description: "National Institutes of Health",
+    description: "National Institutes of Health (access restricted: Cloudflare challenge)",
     rssUrl: "https://grants.nih.gov/grants/guide/newsfeed/fundingopps.xml",
     website: "https://grants.nih.gov/news-events/subscribe-follow/email-updates-and-rss-feeds",
     department: "",
@@ -3109,7 +3113,7 @@ export const feeds: Feed[] = [
     subCategory: "Health & Science",
     contentType: "National Institutes of Health",
     updateFrequency: "",
-    status: "working" as const,
+    status: "blocked" as const,
     tags: ["health & science"],
   },
   {
@@ -3492,7 +3496,8 @@ export const feeds: Feed[] = [
     name: "CDC MMWR",
     shortName: "CDC MMWR",
     agency: "CDC",
-    description: "Morbidity and Mortality Weekly Report surveillance data.",
+    description:
+      "Morbidity and Mortality Weekly Report surveillance data. (deprecated: original QRPS feed endpoint no longer available)",
     rssUrl: "https://www.cdc.gov/mmwr/rss/mmwr_qrps.xml",
     website: "https://www.cdc.gov",
     department: "HHS",
@@ -3500,7 +3505,7 @@ export const feeds: Feed[] = [
     subCategory: "Surveillance",
     contentType: "Public health surveillance",
     updateFrequency: "",
-    status: "working" as const,
+    status: "blocked" as const,
     priority: 1,
     tags: ["health", "surveillance", "cdc", "mmwr"],
   },
@@ -9875,7 +9880,7 @@ export const feedStats = {
     "Technology, Cybersecurity, & Space": 8,
     "Veterans Affairs, Healthcare, & Benefits": 1,
   },
-  byStatus: { unverified: 0, working: 594, blocked: 0 },
+  byStatus: { unverified: 0, working: 586, blocked: 8 },
 };
 
 export const categoryList: string[] = [

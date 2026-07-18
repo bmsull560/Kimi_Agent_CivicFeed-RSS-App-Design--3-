@@ -166,9 +166,19 @@ export interface GuardedFetchResult {
   text: string;
   error?: string;
   truncated: boolean;
+  finalUrl: string;
+  contentType: string | null;
+  etag: string | null;
+  lastModified: string | null;
+  timedOut: boolean;
 }
 
-export async function guardedFetch(inputUrl: string): Promise<GuardedFetchResult> {
+export async function guardedFetch(
+  inputUrl: string,
+  extraHeaders?: HeadersInit,
+  method: "GET" | "HEAD" = "GET",
+  timeoutMs: number = REQUEST_TIMEOUT_MS
+): Promise<GuardedFetchResult> {
   let url = inputUrl;
   let redirectCount = 0;
 
@@ -178,24 +188,65 @@ export async function guardedFetch(inputUrl: string): Promise<GuardedFetchResult
       validated = await assertSafeUrl(url);
     } catch (e) {
       const message = e instanceof Error ? e.message : String(e);
-      return { ok: false, status: 0, text: "", error: message, truncated: false };
+      return {
+        ok: false,
+        status: 0,
+        text: "",
+        error: message,
+        truncated: false,
+        finalUrl: url,
+        contentType: null,
+        etag: null,
+        lastModified: null,
+        timedOut: false,
+      };
     }
 
     const controller = new AbortController();
-    const timer = setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS);
+    const timer = setTimeout(() => controller.abort(), timeoutMs);
 
     let res: Response;
     try {
       res = await fetch(validated.toString(), {
         signal: controller.signal,
         redirect: "manual",
+        headers: extraHeaders,
+        method,
       });
     } catch (e) {
       clearTimeout(timer);
       const message = e instanceof Error ? e.message : String(e);
-      return { ok: false, status: 0, text: "", error: message, truncated: false };
+      const timedOut = controller.signal.aborted || /abort|timeout/i.test(message);
+      return {
+        ok: false,
+        status: 0,
+        text: "",
+        error: message,
+        truncated: false,
+        finalUrl: validated.toString(),
+        contentType: null,
+        etag: null,
+        lastModified: null,
+        timedOut,
+      };
     }
     clearTimeout(timer);
+
+    if (res.status === 304) {
+      // Not Modified is not a redirect; surface it without an error so the
+      // caller can reuse previously cached state.
+      return {
+        ok: false,
+        status: 304,
+        text: "",
+        truncated: false,
+        finalUrl: validated.toString(),
+        contentType: res.headers.get("content-type"),
+        etag: res.headers.get("etag"),
+        lastModified: res.headers.get("last-modified"),
+        timedOut: false,
+      };
+    }
 
     if (res.status >= 300 && res.status < 400) {
       const location = res.headers.get("location");
@@ -206,12 +257,21 @@ export async function guardedFetch(inputUrl: string): Promise<GuardedFetchResult
           text: "",
           error: "Redirect without Location header",
           truncated: false,
+          finalUrl: validated.toString(),
+          contentType: res.headers.get("content-type"),
+          etag: res.headers.get("etag"),
+          lastModified: res.headers.get("last-modified"),
+          timedOut: false,
         };
       }
       url = new URL(location, validated).toString();
       redirectCount++;
       continue;
     }
+
+    const contentType = res.headers.get("content-type");
+    const etag = res.headers.get("etag");
+    const lastModified = res.headers.get("last-modified");
 
     if (!res.ok) {
       return {
@@ -220,12 +280,52 @@ export async function guardedFetch(inputUrl: string): Promise<GuardedFetchResult
         text: "",
         error: `HTTP ${res.status}`,
         truncated: false,
+        finalUrl: validated.toString(),
+        contentType,
+        etag,
+        lastModified,
+        timedOut: false,
+      };
+    }
+
+    if (method === "HEAD") {
+      return {
+        ok: true,
+        status: res.status,
+        text: "",
+        truncated: false,
+        finalUrl: validated.toString(),
+        contentType,
+        etag,
+        lastModified,
+        timedOut: false,
       };
     }
 
     const { text, truncated } = await readBodyWithLimit(res);
-    return { ok: true, status: res.status, text, truncated };
+    return {
+      ok: true,
+      status: res.status,
+      text,
+      truncated,
+      finalUrl: validated.toString(),
+      contentType,
+      etag,
+      lastModified,
+      timedOut: false,
+    };
   }
 
-  return { ok: false, status: 0, text: "", error: "Too many redirects", truncated: false };
+  return {
+    ok: false,
+    status: 0,
+    text: "",
+    error: "Too many redirects",
+    truncated: false,
+    finalUrl: url,
+    contentType: null,
+    etag: null,
+    lastModified: null,
+    timedOut: false,
+  };
 }

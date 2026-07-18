@@ -64,4 +64,22 @@ describe("search", () => {
     expect(recent).toHaveLength(1);
     expect(recent[0].entryId).toBe("e1");
   });
+
+  it("respects offset when searching", () => {
+    const all = searchArticles("government", 100, 0);
+    const secondPage = searchArticles("government", 10, 10);
+    expect(secondPage.length).toBeLessThanOrEqual(10);
+    if (all.length > 10) {
+      expect(secondPage[0].entryId).toBe(all[10].entryId);
+    }
+  });
+
+  it("respects offset for recent articles", () => {
+    const all = getRecentArticles(100, 0);
+    const secondPage = getRecentArticles(10, 10);
+    expect(secondPage.length).toBeLessThanOrEqual(10);
+    if (all.length > 10) {
+      expect(secondPage[0].entryId).toBe(all[10].entryId);
+    }
+  });
 });

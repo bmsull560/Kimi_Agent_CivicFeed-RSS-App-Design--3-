@@ -87,7 +87,7 @@ test("desktop user can search, open, and read a feed entry without runtime error
   const runtimeErrors = await collectRuntimeErrors(page);
   await mockSmokeBackend(page);
 
-  await page.goto("/#/");
+  await page.goto("/");
   await expect(page.getByRole("heading", { name: "U.S. Government RSS Feeds" })).toBeVisible();
 
   await page.getByRole("combobox", { name: "Search feeds" }).fill("ITA News");
@@ -96,7 +96,7 @@ test("desktop user can search, open, and read a feed entry without runtime error
     .first()
     .click();
 
-  await expect(page).toHaveURL(/#\/feed\/feed-001$/);
+  await expect(page).toHaveURL(/\/feed\/feed-001$/);
   await expect(page.getByRole("heading", { name: "ITA News" })).toBeVisible();
   await expect(page.getByText("CivicFeed Test Entry")).toBeVisible();
   await expect(page.getByText("1 entry")).toBeVisible();
@@ -130,7 +130,7 @@ test("feed failures show an explicit empty/error state instead of a blank screen
     })
   );
 
-  await page.goto("/#/feed/feed-001");
+  await page.goto("/feed/feed-001");
   await expect(page.getByText("Failed to load entries")).toBeVisible();
   await expect(page.getByRole("button", { name: "Try Again" })).toBeVisible();
   expect(runtimeErrors).toEqual([]);
@@ -141,17 +141,20 @@ test("mobile layout exposes the directory and navigates to detail", async ({ pag
   const runtimeErrors = await collectRuntimeErrors(page);
   await mockSmokeBackend(page, "Mobile CivicFeed Entry");
 
-  await page.goto("/#/");
+  await page.goto("/");
   await expect(page.getByRole("heading", { name: "U.S. Government RSS Feeds" })).toBeVisible();
   await page.getByRole("button", { name: "Toggle menu" }).click();
-  await page.getByRole("button", { name: /All Feeds/i }).click();
+  await page
+    .getByRole("navigation", { name: "Feed categories" })
+    .getByRole("button", { name: "All Feeds" })
+    .click();
 
-  await expect(page).toHaveURL(/#\/feeds$/);
+  await expect(page).toHaveURL(/\/feeds$/);
   await page
     .getByRole("button", { name: /ITA News/i })
     .first()
     .click();
-  await expect(page).toHaveURL(/#\/feed\/feed-001$/);
+  await expect(page).toHaveURL(/\/feed\/feed-001$/);
   await expect(page.getByText("Mobile CivicFeed Entry")).toBeVisible();
   expect(runtimeErrors).toEqual([]);
 });
