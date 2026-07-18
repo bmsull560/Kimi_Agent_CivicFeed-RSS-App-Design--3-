@@ -569,6 +569,20 @@ describe("validateFeeds", () => {
     expect(results[0].status).toBe("working");
   });
 
+  it("classifies malformed catalog URLs as unsafe_url instead of aborting the run", async () => {
+    const good = sampleFeed({ id: "feed-good", rssUrl: "http://127.0.0.1:8080/good.xml" });
+    const bad = sampleFeed({ id: "feed-bad", rssUrl: "not a url" });
+    const fetchMock = makeMockFetch([
+      { url: "http://127.0.0.1:8080/good.xml", response: mockResponse(rssXml(), 200) },
+    ]);
+    vi.stubGlobal("fetch", fetchMock);
+    const { results } = await validateFeeds([bad, good], baseOptions);
+    const badResult = results.find((r) => r.id === "feed-bad")!;
+    expect(badResult.transportStatus).toBe("unsafe_url");
+    expect(badResult.status).toBe("blocked");
+    expect(results.find((r) => r.id === "feed-good")!.status).toBe("working");
+  });
+
   it("classifies SSRF-rejected URLs as unsafe_url", async () => {
     // Private URLs are NOT allowed in this test (no CIVICFEED_ALLOW_PRIVATE_URLS override).
     vi.unstubAllEnvs();

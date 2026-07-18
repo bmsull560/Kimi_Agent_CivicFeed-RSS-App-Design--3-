@@ -343,7 +343,15 @@ export async function fetchWithReliability(
   options: ReliabilityOptions,
   hostSemaphore: HostSemaphore
 ): Promise<FetchOutcome> {
-  const host = new URL(url).hostname;
+  // Malformed URLs must not abort the whole run: route them through the
+  // guarded fetch (which classifies them via assertSafeUrl) under a
+  // throwaway semaphore host.
+  let host: string;
+  try {
+    host = new URL(url).hostname;
+  } catch {
+    host = "__invalid_url__";
+  }
   const release = await hostSemaphore.acquire(host);
   const start = Date.now();
   try {
@@ -573,7 +581,13 @@ export async function validateFeeds(
   const groups = new Map<string, Feed[]>();
   for (const feed of feeds) {
     const outcome = outcomeByUrl.get(feed.rssUrl)!;
-    const canonical = normalizeCanonicalUrl(outcome.finalUrl || feed.rssUrl);
+    let canonical = outcome.finalUrl || feed.rssUrl;
+    try {
+      canonical = normalizeCanonicalUrl(canonical);
+    } catch {
+      // Keep the raw URL for malformed entries; they are already classified
+      // unsafe_url and must not break canonical grouping for other feeds.
+    }
     feedToCanonical.set(feed.id, canonical);
     if (!groups.has(canonical)) groups.set(canonical, []);
     groups.get(canonical)!.push(feed);
