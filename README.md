@@ -2,6 +2,14 @@
 
 A single-page web application for discovering, organizing, and reading U.S. government and public-interest RSS feeds. CivicFeed aggregates feeds from federal agencies, Congress, courts, public health bodies, journalism outlets, and other civic sources into one searchable, personalizable reading experience.
 
+## Product and Governance
+
+- [`PRODUCT_VISION.md`](PRODUCT_VISION.md) is canonical for product purpose, outcomes, scope, and non-goals.
+- [`docs/governance/CHANGE_GATES.md`](docs/governance/CHANGE_GATES.md) defines the ten gates every change must resolve.
+- [`docs/governance/DECISION_TEMPLATE.md`](docs/governance/DECISION_TEMPLATE.md) records material product, contract, architecture, security, and source-of-truth decisions.
+- [`docs/governance/EXCEPTIONS.yaml`](docs/governance/EXCEPTIONS.yaml) is the canonical registry of active time-bounded deviations.
+- [`ARCHITECTURE.md`](ARCHITECTURE.md) documents current system boundaries and data flow.
+
 ## Current Feature Set
 
 - **Dashboard** — Category overview, priority feeds, and recent cached entries

@@ -53,6 +53,8 @@ npm run format
 
 ## Pull request workflow
 
+Before implementation, resolve the ten gates in `docs/governance/CHANGE_GATES.md`. Use the repository pull request template for routine conforming changes and `docs/governance/DECISION_TEMPLATE.md` when a change crosses its decision threshold. Deviations require an approved, unexpired entry in `docs/governance/EXCEPTIONS.yaml`.
+
 1. Create a feature branch from `main`:
    ```bash
    git checkout -b feat/your-change

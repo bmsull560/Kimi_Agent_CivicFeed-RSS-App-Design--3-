@@ -6,6 +6,13 @@ CivicFeed is a React + TypeScript frontend backed by a Node.js/Express + SQLite 
 
 Repository archetype: **monorepo-like full-stack application** with a root frontend workspace and a `backend/` service workspace.
 
+## Product and change governance
+
+- Read `PRODUCT_VISION.md` before changing product behavior or scope.
+- Resolve all applicable gates in `docs/governance/CHANGE_GATES.md` before implementation.
+- Use `docs/governance/DECISION_TEMPLATE.md` at the policy's decision threshold.
+- Do not proceed under a deviation unless `docs/governance/EXCEPTIONS.yaml` contains an approved, unexpired entry covering it exactly.
+
 ## Required commands
 
 Run these before declaring any change complete:
@@ -92,6 +99,12 @@ npm run lint && npm run format:check && npm run type-check && npm run build && c
 
 - For feed intake, discovery, validation, or modification tasks, invoke the project skill:
   - **civicfeed-feed-intake** — `.kimi-code/skills/civicfeed-feed-intake/SKILL.md`
+- For cross-cutting features, architecture changes, schema work, or proactive roadmap evolution, invoke:
+  - **civicfeed-architecture-evolution** — `.kimi-code/skills/civicfeed-architecture-evolution/SKILL.md`
+- For summaries, tags, ranking, clustering, recaps, retrieval, or other AI enrichment work, invoke:
+  - **civicfeed-ai-enrichment** — `.kimi-code/skills/civicfeed-ai-enrichment/SKILL.md`
+- For systemic fetch, parser, cache, scheduler, feed-health, or ingestion diagnostics, invoke:
+  - **civicfeed-ingestion-reliability** — `.kimi-code/skills/civicfeed-ingestion-reliability/SKILL.md`
 - For multi-step implementation planning, use the Superpowers planning skill.
 - For bug fixes, use the Superpowers systematic-debugging skill first.
 

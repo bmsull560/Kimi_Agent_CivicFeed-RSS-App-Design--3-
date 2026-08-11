@@ -1,0 +1,4 @@
+interface:
+  display_name: "CivicFeed Ingestion Reliability"
+  short_description: "Harden feed ingestion and observability"
+  default_prompt: "Use $civicfeed-ingestion-reliability to diagnose and improve this CivicFeed ingestion path."

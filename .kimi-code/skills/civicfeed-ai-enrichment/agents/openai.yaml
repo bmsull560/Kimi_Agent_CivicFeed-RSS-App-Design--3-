@@ -1,0 +1,4 @@
+interface:
+  display_name: "CivicFeed AI Enrichment"
+  short_description: "Build grounded asynchronous AI enrichment"
+  default_prompt: "Use $civicfeed-ai-enrichment to design and validate this CivicFeed AI capability."
