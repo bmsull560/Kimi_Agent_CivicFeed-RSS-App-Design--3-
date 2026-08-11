@@ -1,7 +1,8 @@
 import { db } from "./db.js";
 import type { RssEntry } from "./rss.js";
 
-const CACHE_TTL_MS = 15 * 60 * 1000; // 15 minutes
+const CACHE_FRESHNESS_MS = 15 * 60 * 1000; // 15 minutes
+const CACHE_RETENTION_MS = 30 * 24 * 60 * 60 * 1000; // 30 days
 
 export interface CachedArticle {
   id: number;
@@ -33,18 +34,28 @@ interface CountRow {
   c: number;
 }
 
-export function getCachedArticles(feedId: string): CachedArticle[] | null {
-  const stmt = db.prepare(`
-    SELECT * FROM article_cache
-    WHERE feed_id = ? AND fetched_at > ?
-    ORDER BY pub_date DESC
-  `);
-  const minTime = Date.now() - CACHE_TTL_MS;
-  const rows = stmt.all(feedId, minTime) as CacheRow[];
+export interface ArticleCacheSnapshot {
+  articles: CachedArticle[];
+  stale: boolean;
+}
+
+export function getArticleCacheSnapshot(
+  feedId: string,
+  now = Date.now()
+): ArticleCacheSnapshot | null {
+  const rows = db
+    .prepare(
+      `
+      SELECT * FROM article_cache
+      WHERE feed_id = ? AND fetched_at > ?
+      ORDER BY pub_date DESC
+    `
+    )
+    .all(feedId, now - CACHE_RETENTION_MS) as CacheRow[];
 
   if (rows.length === 0) return null;
 
-  return rows.map((r) => ({
+  const articles = rows.map((r) => ({
     id: r.id,
     feedId: r.feed_id,
     entryId: r.entry_id,
@@ -56,6 +67,16 @@ export function getCachedArticles(feedId: string): CachedArticle[] | null {
     categories: r.categories ? JSON.parse(r.categories) : null,
     fetchedAt: r.fetched_at,
   }));
+
+  return {
+    articles,
+    stale: articles.every((article) => article.fetchedAt <= now - CACHE_FRESHNESS_MS),
+  };
+}
+
+export function getCachedArticles(feedId: string): CachedArticle[] | null {
+  const snapshot = getArticleCacheSnapshot(feedId);
+  return snapshot && !snapshot.stale ? snapshot.articles : null;
 }
 
 export function saveArticles(feedId: string, entries: RssEntry[]) {
@@ -83,7 +104,7 @@ export function saveArticles(feedId: string, entries: RssEntry[]) {
         entry.fetchedAt
       );
     }
-    clearOld.run(feedId, Date.now() - CACHE_TTL_MS * 2);
+    clearOld.run(feedId, Date.now() - CACHE_RETENTION_MS);
   })();
 }
 

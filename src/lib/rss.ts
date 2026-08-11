@@ -56,7 +56,7 @@ export async function fetchFeedArticles(
   );
 
   if (!data) {
-    return { entries: [], cached: false, error: "Backend unreachable" };
+    return { entries: [], cached: false, stale: false, error: "Backend unreachable" };
   }
 
   return data;

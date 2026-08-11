@@ -1,7 +1,14 @@
-import type { Feed, UserFeed, UserData, ArticleState, UserPreferences } from "../types";
+import type {
+  Feed,
+  UserFeed,
+  UserData,
+  ArticleState,
+  UserPreferences,
+  FeedPreferenceOverride,
+} from "../types";
 
 const USER_DATA_KEY = "civicfeed_v2_user";
-const CURRENT_VERSION = 1;
+const CURRENT_VERSION = 2;
 
 const VALID_HUB_KEYS = new Set([
   "health-environment",
@@ -29,6 +36,7 @@ function defaultUserData(): UserData {
   return {
     version: CURRENT_VERSION,
     feeds: [],
+    feedOverrides: {},
     articleState: { ...DEFAULT_ARTICLE_STATE },
     preferences: { ...DEFAULT_PREFERENCES },
   };
@@ -48,6 +56,24 @@ export function loadUserData(): UserData {
     return defaultUserData();
   }
 }
+function normalizeFeedOverrides(value: unknown): Record<string, FeedPreferenceOverride> {
+  if (!value || typeof value !== "object" || Array.isArray(value)) return {};
+
+  return Object.fromEntries(
+    Object.entries(value).flatMap(([feedId, override]) => {
+      if (
+        !feedId ||
+        !override ||
+        typeof override !== "object" ||
+        !("enabled" in override) ||
+        typeof override.enabled !== "boolean"
+      ) {
+        return [];
+      }
+      return [[feedId, { enabled: override.enabled }]];
+    })
+  );
+}
 
 function migrateUserData(parsed: Partial<UserData>): UserData {
   const base = defaultUserData();
@@ -62,6 +88,7 @@ function migrateUserData(parsed: Partial<UserData>): UserData {
     feeds: Array.isArray(parsed.feeds)
       ? parsed.feeds.filter((f): f is UserFeed => !!f && f.userAdded === true)
       : base.feeds,
+    feedOverrides: normalizeFeedOverrides(parsed.feedOverrides),
     articleState: {
       read: Array.isArray(parsed.articleState?.read)
         ? parsed.articleState.read
@@ -134,17 +161,18 @@ export function createUserFeed(
 export function getAllFeeds(staticFeeds: Feed[]): Feed[] {
   const userData = loadUserData();
   const userFeedMap = new Map(userData.feeds.map((f) => [f.id, f]));
-  const merged = staticFeeds.map((f) => userFeedMap.get(f.id) ?? f);
+  const merged = staticFeeds.map((feed) => {
+    const resolved = userFeedMap.get(feed.id) ?? feed;
+    const override = userData.feedOverrides[feed.id];
+    return override ? { ...resolved, enabled: override.enabled } : resolved;
+  });
   const staticIds = new Set(staticFeeds.map((f) => f.id));
   const addedOnly = userData.feeds.filter((f) => !staticIds.has(f.id));
   return [...merged, ...addedOnly];
 }
 
 export function getEnabledFeeds(staticFeeds: Feed[]): Feed[] {
-  return getAllFeeds(staticFeeds).filter((f) => {
-    if (f.userAdded === true) return f.enabled;
-    return true;
-  });
+  return getAllFeeds(staticFeeds).filter((feed) => feed.enabled !== false);
 }
 
 export function addUserFeed(feed: UserFeed): UserData {
@@ -175,6 +203,7 @@ export function updateUserFeed(
 export function removeUserFeed(id: string): UserData {
   return withUpdatedData((data) => {
     data.feeds = data.feeds.filter((f) => f.id !== id);
+    delete data.feedOverrides[id];
     return data;
   });
 }
@@ -184,17 +213,10 @@ export function setFeedEnabled(id: string, enabled: boolean): UserData {
     const feed = data.feeds.find((f) => f.id === id);
     if (feed) {
       feed.enabled = enabled;
+    } else if (enabled) {
+      delete data.feedOverrides[id];
     } else {
-      // Static feed toggled off: store an override with enabled=false.
-      const staticFeed = getAllFeeds([]).find((f) => f.id === id);
-      if (staticFeed && staticFeed.userAdded !== true) {
-        data.feeds.push({
-          ...staticFeed,
-          userAdded: true,
-          enabled,
-          addedAt: Date.now(),
-        });
-      }
+      data.feedOverrides[id] = { enabled: false };
     }
     return data;
   });
@@ -204,6 +226,8 @@ export function isFeedEnabled(id: string): boolean {
   const data = loadUserData();
   const userFeed = data.feeds.find((f) => f.id === id);
   if (userFeed) return userFeed.enabled;
+  const override = data.feedOverrides[id];
+  if (override) return override.enabled;
   return true;
 }
 

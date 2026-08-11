@@ -452,6 +452,24 @@ test("search shows an error when the backend is unavailable", async ({ page }, t
   expect(runtimeErrors).toEqual([]);
 });
 
+test("built-in feed enabled state persists after reload", async ({ page }, testInfo) => {
+  test.skip(testInfo.project.name.includes("mobile"), "desktop-only path");
+  await mockBackendBasics(page);
+  await page.goto("/feeds");
+
+  const toggle = page.getByRole("switch", { name: "ITA News enabled" }).first();
+  await expect(toggle).toBeChecked();
+  await toggle.click();
+  await expect(toggle).not.toBeChecked();
+  await page.reload();
+  await expect(page.getByRole("switch", { name: "ITA News enabled" }).first()).not.toBeChecked();
+
+  const stored = await page.evaluate(() =>
+    JSON.parse(localStorage.getItem("civicfeed_v2_user") || "{}")
+  );
+  expect(stored.feedOverrides["feed-001"]).toEqual({ enabled: false });
+});
+
 test("user bookmarks and marks an article as read", async ({ page }, testInfo) => {
   test.skip(testInfo.project.name.includes("mobile"), "desktop-only path");
   const runtimeErrors = await collectRuntimeErrors(page);
