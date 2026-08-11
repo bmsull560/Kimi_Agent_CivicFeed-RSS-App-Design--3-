@@ -1,0 +1,4 @@
+interface:
+  display_name: "CivicFeed Architecture Evolution"
+  short_description: "Evolve CivicFeed without breaking boundaries"
+  default_prompt: "Use $civicfeed-architecture-evolution to design and implement this CivicFeed feature safely."

@@ -1,0 +1,21 @@
+# Canonical registry of active, time-bounded governance deviations.
+# Remove remediated entries in the closing change; history remains in Git.
+#
+# Entry schema:
+# - id: EXC-YYYY-NNN
+#   status: approved
+#   area: product | architecture | contract | source-of-truth | security | scope | drift | completion
+#   summary: concise deviation
+#   rationale: why compliant delivery is temporarily impossible
+#   owner: accountable person or role
+#   approvers:
+#     - required person or role
+#   created: YYYY-MM-DD
+#   expires: YYYY-MM-DD
+#   issue: URL or repository identifier
+#   affected_artifacts:
+#     - path or control
+#   compensating_controls:
+#     - bounded temporary control
+#   remediation: exit condition and closing evidence
+exceptions: []
