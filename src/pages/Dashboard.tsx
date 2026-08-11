@@ -136,7 +136,7 @@ export default function Dashboard() {
             type="button"
             variant="ghost"
             onClick={() => {
-              updatePreferences({ onboardingComplete: false });
+              updatePreferences({ onboardingComplete: false, onboardingDismissed: false });
               window.location.reload();
             }}
           >

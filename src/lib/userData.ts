@@ -3,12 +3,20 @@ import type { Feed, UserFeed, UserData, ArticleState, UserPreferences } from "..
 const USER_DATA_KEY = "civicfeed_v2_user";
 const CURRENT_VERSION = 1;
 
+const VALID_HUB_KEYS = new Set([
+  "health-environment",
+  "economy-trade",
+  "defense-security",
+  "law-policy",
+  "general-bulletins",
+]);
 const DEFAULT_PREFERENCES: UserPreferences = {
   defaultView: "list",
   reduceMotion: false,
   onboardingComplete: false,
   followedHubs: [],
   digestFrequency: null,
+  onboardingDismissed: false,
 };
 
 const DEFAULT_ARTICLE_STATE: ArticleState = {
@@ -69,8 +77,11 @@ function migrateUserData(parsed: Partial<UserData>): UserData {
       defaultView: parsed.preferences?.defaultView === "grid" ? "grid" : "list",
       reduceMotion: !!parsed.preferences?.reduceMotion,
       onboardingComplete: !!parsed.preferences?.onboardingComplete,
+      onboardingDismissed: !!parsed.preferences?.onboardingDismissed,
       followedHubs: Array.isArray(parsed.preferences?.followedHubs)
-        ? parsed.preferences.followedHubs.filter((h): h is string => typeof h === "string")
+        ? parsed.preferences.followedHubs.filter(
+            (h): h is string => typeof h === "string" && VALID_HUB_KEYS.has(h)
+          )
         : base.preferences.followedHubs,
       digestFrequency:
         parsed.preferences?.digestFrequency === "realtime" ||

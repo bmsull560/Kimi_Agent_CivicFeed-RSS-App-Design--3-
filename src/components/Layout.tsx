@@ -11,9 +11,8 @@ interface LayoutProps {
 export default function Layout({ children }: LayoutProps) {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [showOnboarding, setShowOnboarding] = useState(() => {
-    if (typeof navigator !== "undefined" && navigator.webdriver) return false;
     const prefs = getPreferences();
-    return !prefs.onboardingComplete;
+    return !prefs.onboardingComplete && !prefs.onboardingDismissed;
   });
 
   return (
@@ -25,7 +24,11 @@ export default function Layout({ children }: LayoutProps) {
           {children}
         </main>
       </div>
-      <OnboardingDialog open={showOnboarding} onComplete={() => setShowOnboarding(false)} />
+      <OnboardingDialog
+        open={showOnboarding}
+        onComplete={() => setShowOnboarding(false)}
+        onDismiss={() => setShowOnboarding(false)}
+      />
     </div>
   );
 }

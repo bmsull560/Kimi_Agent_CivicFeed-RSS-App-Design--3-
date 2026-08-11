@@ -12,6 +12,32 @@ export default defineConfig({
   use: {
     baseURL: "http://127.0.0.1:4173",
     trace: "retain-on-failure",
+    storageState: {
+      cookies: [],
+      origins: [
+        {
+          origin: "http://127.0.0.1:4173",
+          localStorage: [
+            {
+              name: "civicfeed_v2_user",
+              value: JSON.stringify({
+                version: 1,
+                feeds: [],
+                articleState: { read: [], bookmarked: [], archived: [] },
+                preferences: {
+                  defaultView: "list",
+                  reduceMotion: false,
+                  onboardingComplete: true,
+                  onboardingDismissed: false,
+                  followedHubs: [],
+                  digestFrequency: null,
+                },
+              }),
+            },
+          ],
+        },
+      ],
+    },
   },
   projects: [
     {
