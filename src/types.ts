@@ -38,6 +38,7 @@ export interface UserPreferences {
   defaultView: "list" | "grid";
   reduceMotion: boolean;
   onboardingComplete?: boolean;
+  onboardingDismissed?: boolean;
   followedHubs?: string[];
   digestFrequency?: "realtime" | "daily" | "weekly" | null;
 }
