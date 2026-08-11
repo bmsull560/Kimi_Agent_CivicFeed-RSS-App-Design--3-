@@ -74,6 +74,9 @@ describe("server", () => {
     expect(res.status).toBe(200);
     expect(res.body.entries).toHaveLength(1);
     expect(res.body.entries[0].title).toBe("Server Entry");
+    expect(res.body.cached).toBe(false);
+    expect(res.body.stale).toBe(false);
+    expect(res.body.error).toBeNull();
 
     // Process the queued enrichment job and re-fetch.
     const { processEnrichmentBatch } = await import("./enrichment-queue.js");
@@ -83,6 +86,9 @@ describe("server", () => {
     expect(enriched.status).toBe(200);
     expect(enriched.body.entries[0].aiSummary).toBeDefined();
     expect(enriched.body.entries[0].aiTags).toBeDefined();
+    expect(enriched.body.cached).toBe(true);
+    expect(enriched.body.stale).toBe(false);
+    expect(enriched.body.error).toBeNull();
   });
 
   it("serves retained stale articles when a refresh fails", async () => {
@@ -202,6 +208,10 @@ describe("server", () => {
 
       const articleRes = await request(app).get(`/api/feeds/${statusFeedId}/articles`);
       expect(articleRes.status).toBe(502);
+      expect(articleRes.body.entries).toEqual([]);
+      expect(articleRes.body.cached).toBe(false);
+      expect(articleRes.body.stale).toBe(false);
+      expect(articleRes.body.error).toContain("500");
 
       const res = await request(app).get(`/api/feeds/${statusFeedId}/status`);
       expect(res.status).toBe(200);

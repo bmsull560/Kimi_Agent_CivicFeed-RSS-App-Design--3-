@@ -124,46 +124,65 @@ export function createNonOverlappingTask(
   };
 }
 
+export function scheduleNonOverlappingTask(
+  taskName: string,
+  task: () => Promise<Record<string, unknown> | void>,
+  intervalMs: number,
+  initialDelayMs: number
+): () => void {
+  let stopped = false;
+  const guarded = createNonOverlappingTask(taskName, task);
+  const invoke = () => {
+    if (!stopped) void guarded();
+  };
+  const initial = setTimeout(invoke, initialDelayMs);
+  const interval = setInterval(invoke, intervalMs);
+
+  return () => {
+    stopped = true;
+    clearTimeout(initial);
+    clearInterval(interval);
+  };
+}
+
 export function startFeedRefreshScheduler(
   db: Database.Database,
   refreshIntervalMs = 60_000,
   healthIntervalMs = 60 * 60 * 1000,
   enrichmentIntervalMs = 30_000
 ): () => void {
-  let stopped = false;
-
-  const refresh = createNonOverlappingTask("feed refresh", async () => {
-    const summary = await refreshDueFeeds(db);
-    return { batchSize: summary.processed, succeeded: summary.succeeded, failed: summary.failed };
-  });
-  const enrichment = createNonOverlappingTask("enrichment", async () => {
-    const queueDepthBefore = getPendingEnrichmentCount();
-    const summary = await processEnrichmentBatch(20, 3);
-    return { ...summary, queueDepthBefore, queueDepthAfter: getPendingEnrichmentCount() };
-  });
-  const health = createNonOverlappingTask("feed health", async () => {
-    const results = await validateAllFeedHealth(db, feeds, Date.now());
-    return { batchSize: results.processed, ...results };
-  });
-
-  const runUnlessStopped = (task: () => Promise<void>) => () => {
-    if (!stopped) void task();
-  };
-
-  const initialRefresh = setTimeout(runUnlessStopped(refresh), 5_000);
-  const initialEnrichment = setTimeout(runUnlessStopped(enrichment), 10_000);
-  const initialHealth = setTimeout(runUnlessStopped(health), 15_000);
-  const refreshInterval = setInterval(runUnlessStopped(refresh), refreshIntervalMs);
-  const enrichmentInterval = setInterval(runUnlessStopped(enrichment), enrichmentIntervalMs);
-  const healthInterval = setInterval(runUnlessStopped(health), healthIntervalMs);
+  const stopRefresh = scheduleNonOverlappingTask(
+    "feed refresh",
+    async () => {
+      const summary = await refreshDueFeeds(db);
+      return { batchSize: summary.processed, succeeded: summary.succeeded, failed: summary.failed };
+    },
+    refreshIntervalMs,
+    5_000
+  );
+  const stopEnrichment = scheduleNonOverlappingTask(
+    "enrichment",
+    async () => {
+      const queueDepthBefore = getPendingEnrichmentCount();
+      const summary = await processEnrichmentBatch(20, 3);
+      return { ...summary, queueDepthBefore, queueDepthAfter: getPendingEnrichmentCount() };
+    },
+    enrichmentIntervalMs,
+    10_000
+  );
+  const stopHealth = scheduleNonOverlappingTask(
+    "feed health",
+    async () => {
+      const results = await validateAllFeedHealth(db, feeds, Date.now());
+      return { batchSize: results.processed, ...results };
+    },
+    healthIntervalMs,
+    15_000
+  );
 
   return () => {
-    stopped = true;
-    clearTimeout(initialRefresh);
-    clearTimeout(initialEnrichment);
-    clearTimeout(initialHealth);
-    clearInterval(refreshInterval);
-    clearInterval(enrichmentInterval);
-    clearInterval(healthInterval);
+    stopRefresh();
+    stopEnrichment();
+    stopHealth();
   };
 }

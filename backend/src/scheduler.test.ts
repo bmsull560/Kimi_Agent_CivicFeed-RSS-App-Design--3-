@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
 import { db } from "./db.js";
-import { createNonOverlappingTask, refreshDueFeeds } from "./scheduler.js";
+import { refreshDueFeeds, scheduleNonOverlappingTask } from "./scheduler.js";
 import { insertTestFeed } from "./test-helpers.js";
 
 const testFeedId = "scheduler-test-feed";
@@ -96,27 +96,30 @@ describe("scheduler", () => {
     expect(status!.failure_count).toBe(1);
   });
 
-  it("skips overlapping executions until the active task settles", async () => {
+  it("skips overlapping scheduled executions until the active task settles", async () => {
     vi.useFakeTimers();
-    let resolveTask: (() => void) | undefined;
+    const resolvers: Array<() => void> = [];
     const task = vi.fn(
       () =>
         new Promise<void>((resolve) => {
-          resolveTask = resolve;
+          resolvers.push(resolve);
         })
     );
-    const guarded = createNonOverlappingTask("test batch", task);
+    const stop = scheduleNonOverlappingTask("test batch", task, 1_000, 100);
 
-    const first = guarded();
-    await guarded();
+    await vi.advanceTimersByTimeAsync(100);
+    expect(task).toHaveBeenCalledTimes(1);
+    await vi.advanceTimersByTimeAsync(2_000);
     expect(task).toHaveBeenCalledTimes(1);
 
-    resolveTask?.();
-    await first;
-    const second = guarded();
+    resolvers.shift()?.();
+    await Promise.resolve();
+    await vi.advanceTimersByTimeAsync(1_000);
     expect(task).toHaveBeenCalledTimes(2);
-    resolveTask?.();
-    await second;
+
+    resolvers.shift()?.();
+    await Promise.resolve();
+    stop();
     vi.useRealTimers();
   });
 });
