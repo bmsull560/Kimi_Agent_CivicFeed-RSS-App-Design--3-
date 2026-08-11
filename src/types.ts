@@ -42,10 +42,14 @@ export interface UserPreferences {
   followedHubs?: string[];
   digestFrequency?: "realtime" | "daily" | "weekly" | null;
 }
+export interface FeedPreferenceOverride {
+  enabled: boolean;
+}
 
 export interface UserData {
   version: number;
   feeds: UserFeed[];
+  feedOverrides: Record<string, FeedPreferenceOverride>;
   articleState: ArticleState;
   preferences: UserPreferences;
 }
@@ -146,6 +150,7 @@ export interface SearchResultItem {
 export interface FeedArticlesResponse {
   entries: RssEntry[];
   cached: boolean;
+  stale: boolean;
   error: string | null;
 }
 

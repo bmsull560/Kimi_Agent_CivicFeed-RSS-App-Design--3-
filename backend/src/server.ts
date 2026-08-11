@@ -2,7 +2,7 @@ import express from "express";
 import cors from "cors";
 import { db } from "./db.js";
 import { fetchFeed, type RssEntry } from "./rss.js";
-import { getCachedArticles, saveArticles } from "./cache.js";
+import { getArticleCacheSnapshot, saveArticles } from "./cache.js";
 import { getCachedEnrichment } from "./ai.js";
 import { enqueueArticleEnrichment } from "./enrichment-queue.js";
 import { searchArticles, getRecentArticles, parseTags } from "./search.js";
@@ -246,11 +246,12 @@ app.get("/api/feeds/:id/articles", async (req, res) => {
 
   let entries: RssEntry[];
   let fromCache = false;
+  let stale = false;
+  let responseError: string | null = null;
 
-  // Try cache first
-  const cached = getCachedArticles(feedId);
-  if (cached && cached.length > 0) {
-    entries = cached.map((a) => ({
+  const snapshot = getArticleCacheSnapshot(feedId);
+  if (snapshot && !snapshot.stale) {
+    entries = snapshot.articles.map((a) => ({
       id: a.entryId,
       title: a.title,
       link: a.link,
@@ -267,10 +268,30 @@ app.get("/api/feeds/:id/articles", async (req, res) => {
     // Fetch fresh
     const result = await fetchFeed(feedRow.rss_url, feedId, feedRow.name);
     if (result.error) {
-      return res.status(502).json({ entries: [], cached: false, error: result.error });
+      if (!snapshot) {
+        return res
+          .status(502)
+          .json({ entries: [], cached: false, stale: false, error: result.error });
+      }
+      entries = snapshot.articles.map((a) => ({
+        id: a.entryId,
+        title: a.title,
+        link: a.link,
+        description: a.description,
+        pubDate: a.pubDate,
+        author: a.author || undefined,
+        categories: a.categories || undefined,
+        feedId: a.feedId,
+        feedName: feedRow.name,
+        fetchedAt: a.fetchedAt,
+      }));
+      fromCache = true;
+      stale = true;
+      responseError = result.error;
+    } else {
+      entries = result.entries;
+      saveArticles(feedId, result.entries);
     }
-    entries = result.entries;
-    saveArticles(feedId, result.entries);
   }
 
   // Attach cached enrichments and queue missing ones for background processing.
@@ -294,7 +315,8 @@ app.get("/api/feeds/:id/articles", async (req, res) => {
   res.json({
     entries: enrichedEntries,
     cached: fromCache,
-    error: null,
+    stale,
+    error: responseError,
   });
 });
 

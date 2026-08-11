@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeEach } from "vitest";
 import { db } from "./db.js";
-import { getCachedArticles, saveArticles, cacheStats } from "./cache.js";
+import { getArticleCacheSnapshot, getCachedArticles, saveArticles, cacheStats } from "./cache.js";
 import { insertTestFeed, makeEntry } from "./test-helpers.js";
 
 describe("cache", () => {
@@ -50,5 +50,20 @@ describe("cache", () => {
     const cached = getCachedArticles(feedId);
     expect(cached).toHaveLength(1);
     expect(cached?.[0].title).toBe("Updated");
+  });
+
+  it("retains stale articles for fallback while excluding expired articles", () => {
+    const feedId = insertTestFeed({ id: "feed-retention" });
+    const staleEntry = makeEntry({ id: "stale", title: "Stale" }, feedId);
+    staleEntry.fetchedAt = Date.now() - 60 * 60 * 1000;
+    const expiredEntry = makeEntry({ id: "expired", title: "Expired" }, feedId);
+    expiredEntry.fetchedAt = Date.now() - 31 * 24 * 60 * 60 * 1000;
+
+    saveArticles(feedId, [staleEntry, expiredEntry]);
+
+    expect(getCachedArticles(feedId)).toBeNull();
+    const snapshot = getArticleCacheSnapshot(feedId);
+    expect(snapshot?.stale).toBe(true);
+    expect(snapshot?.articles.map((article) => article.entryId)).toEqual(["stale"]);
   });
 });
